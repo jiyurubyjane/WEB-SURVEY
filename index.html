@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+    <h1>Form Survei Dampak Ekonomi</h1>
+    <p>Silakan isi data hasil survei di bawah ini.</p>
+    
+    <form id="survey-form">
+        <label for="namaSurveyor">Nama Surveyor:</label>
+        <input type="text" id="namaSurveyor" name="namaSurveyor" required>
+
+        <label for="asalPengunjung">Asal Pengunjung:</label>
+        <input type="text" id="asalPengunjung" name="asalPengunjung" required>
+
+        <label for="belanjaAkomodasi">Belanja Akomodasi (Rp):</label>
+        <input type="number" id="belanjaAkomodasi" name="belanjaAkomodasi" value="0">
+
+        <label for="belanjaMakan">Belanja Makan & Minum (Rp):</label>
+        <input type="number" id="belanjaMakan" name="belanjaMakan" value="0">
+        
+        <button type="submit" id="submit-button">KIRIM DATA</button>
+    </form>
+    
+    <p id="status-message"></p>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
