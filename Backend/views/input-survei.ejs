@@ -21,6 +21,18 @@
 
     <form action="/submit-survei" method="POST">
         
+        <label for="event_id">PILIH EVENT YANG DISURVEI:</label>
+        <select id="event_id" name="event_id" required>
+            <option value="">-- Silakan Pilih Event --</option>
+            <% if (typeof events !== 'undefined' && events.length > 0) { %>
+                <% events.forEach(event => { %>
+                    <option value="<%= event.id %>"><%= event.nama_event %></option>
+                <% }) %>
+            <% } else { %>
+                <option value="" disabled>Belum ada event yang bisa dipilih</option>
+            <% } %>
+        </select>
+        <hr>
         <h3>A. PROFIL RESPONDEN</h3>
         <label for="asal_kota">1. Asal Kota/Kabupaten Responden:</label>
         <input type="text" id="asal_kota" name="asal_kota" placeholder="Contoh: Jakarta Selatan" required>

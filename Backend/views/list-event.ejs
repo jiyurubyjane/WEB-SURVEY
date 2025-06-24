@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Kelola Event</title></head>
+<body>
+    <h1>Manajemen Event</h1>
+    <a href="/events/new"><button>+ Tambah Event Baru</button></a>
+    <hr>
+    <table border="1" cellpadding="5" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama Event</th>
+                <th>Lokasi</th>
+                <th>Tanggal Mulai</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% events.forEach(event => { %>
+                <tr>
+                    <td><%= event.id %></td>
+                    <td><%= event.nama_event %></td>
+                    <td><%= event.lokasi %></td>
+                    <td><%= event.tanggal_mulai %></td>
+                    <td><a href="/events/<%= event.id %>/analisis">Lihat Analisis</a></td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+    <br>
+    <a href="/dashboard">Kembali ke Dashboard</a>
+</body>
+</html>
