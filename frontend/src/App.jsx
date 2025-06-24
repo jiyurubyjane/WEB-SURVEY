@@ -1,24 +1,18 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Login from './pages/Login'
-import DashboardAdmin from './pages/DashboardAdmin'
-import DashboardSurveyor from './pages/DashboardSurveyor'
-import DashboardInstansi from './pages/DashboardInstansi'
-import NotFound from './pages/NotFound'
+// src/App.jsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+// import LoginPage from './pages/LoginPage'; // bisa tambahin nanti kalau udah ada
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-     <Router>
+    <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/admin" element={<DashboardAdmin />} />
-        <Route path="/surveyor" element={<DashboardSurveyor />} />
-        <Route path="/instansi" element={<DashboardInstansi />} />
-        <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<LandingPage />} />
+        {/* <Route path="/login" element={<LoginPage />} /> */}
+        {/* <Route path="/register" element={<RegisterPage />} /> */}
       </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
