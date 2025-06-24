@@ -14,11 +14,9 @@
     <h3>Menu Anda:</h3>
     <% if (user.peran === 'Admin') { %>
         <a href="/kelola-pengguna"><button>Kelola Pengguna</button></a>
-        <a href="/kelola-event"><button>Kelola Event</button></a>
-        <a href="/input-survei"><button>Input Data Survei</button></a>
+        <a href="/events"><button>Kelola Event</button></a>  <a href="/input-survei"><button>Input Data Survei</button></a>
     <% } else if (user.peran === 'Analis') { %>
-        <a href="/kelola-event"><button>Kelola Event</button></a>
-    <% } else if (user.peran === 'Surveyor') { %>
+        <a href="/events"><button>Kelola Event</button></a>  <% } else if (user.peran === 'Surveyor') { %>
         <a href="/input-survei"><button>Input Data Survei</button></a>
     <% } %>
 
