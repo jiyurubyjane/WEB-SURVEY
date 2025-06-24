@@ -1,6 +1,6 @@
 // ==========================================================
 // KODE SERVER FINAL APLIKASI KEMENPORA
-// Termasuk Fitur Manajemen Event
+// Termasuk Fitur Manajemen Event & Pengguna
 // ==========================================================
 
 // Tahap 1: Memuat modul-modul penting
@@ -32,7 +32,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('FATAL ERROR: Gagal terhubung ke database di:', dbPath);
         console.error(err.message);
-        process.exit(1); // Keluar dari program jika DB gagal connect
+        process.exit(1);
     } else {
         console.log('Berhasil terhubung ke database.');
     }
@@ -110,55 +110,45 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
     res.render('dashboard', { user: req.session.user });
 });
 
-// Rute untuk menampilkan halaman form input survei
 app.get('/input-survei', isAuthenticated, (req, res) => {
     if (req.session.user.peran !== 'Surveyor' && req.session.user.peran !== 'Admin') {
         return res.status(403).send('Akses ditolak: Anda tidak memiliki izin.');
     }
-    // Ambil daftar event dari database
     db.all("SELECT id, nama_event FROM events ORDER BY id DESC", [], (err, events) => {
         if (err) {
             console.error(err.message);
             return res.status(500).send('Gagal memuat daftar event.');
         }
-        // Kirim daftar event ke halaman EJS
         res.render('input-survei', { user: req.session.user, events: events });
     });
 });
 
-// Rute untuk MENERIMA data dari form input survei
 app.post('/submit-survei', isAuthenticated, (req, res) => {
     if (req.session.user.peran !== 'Surveyor' && req.session.user.peran !== 'Admin') {
         return res.status(403).send('Akses ditolak.');
     }
-    
     const surveyorId = req.session.user.id;
     const { 
-        event_id, // <-- Menerima event_id dari form
-        asal_kota, tujuan_utama, lama_tinggal, jumlah_rombongan,
+        event_id, asal_kota, tujuan_utama, lama_tinggal, jumlah_rombongan,
         belanja_akomodasi, belanja_makan_minum, belanja_transportasi,
         belanja_oleh_oleh, belanja_tiket, belanja_lainnya 
     } = req.body;
-
     const sql = `INSERT INTO survey_results (
         event_id, surveyor_id, asal_kota, tujuan_utama, lama_tinggal, jumlah_rombongan,
         belanja_akomodasi, belanja_makan_minum, belanja_transportasi,
         belanja_oleh_oleh, belanja_tiket, belanja_lainnya
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
     const params = [
         event_id, surveyorId, asal_kota, tujuan_utama, lama_tinggal, jumlah_rombongan,
         belanja_akomodasi, belanja_makan_minum, belanja_transportasi,
         belanja_oleh_oleh, belanja_tiket, belanja_lainnya
     ];
-
     db.run(sql, params, function(err) {
         if (err) {
             console.error(err.message);
             return res.status(500).send('Gagal menyimpan data ke database.');
         }
         console.log(`Data survei baru untuk event ID ${event_id} telah disimpan dengan ID: ${this.lastID}`);
-        // Arahkan kembali ke form agar bisa input data selanjutnya
         res.redirect('/input-survei');
     });
 });
@@ -192,6 +182,47 @@ app.post('/events/new', isAuthenticated, (req, res) => {
     db.run(sql, [nama_event, lokasi, tanggal_mulai], function(err) {
         if (err) return res.status(500).send('Gagal menyimpan event baru.');
         res.redirect('/events');
+    });
+});
+
+// --- Rute untuk Manajemen Pengguna ---
+app.get('/kelola-pengguna', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin') {
+        return res.status(403).send('Akses ditolak. Anda bukan Admin.');
+    }
+    const sql = "SELECT id, nama, email, peran FROM users ORDER BY id";
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error("Error mengambil data pengguna:", err.message);
+            return res.status(500).send('Gagal mengambil data pengguna.');
+        }
+        res.render('list-pengguna', { users: rows });
+    });
+});
+
+// Rute untuk MENGHAPUS pengguna
+app.post('/users/delete/:id', isAuthenticated, (req, res) => {
+    // Keamanan: Hanya Admin yang boleh menghapus
+    if (req.session.user.peran !== 'Admin') {
+        return res.status(403).send('Akses ditolak.');
+    }
+
+    const userIdToDelete = req.params.id;
+
+    // Keamanan Tambahan: Admin tidak boleh menghapus akunnya sendiri
+    if (userIdToDelete == req.session.user.id) {
+        return res.status(400).send('Anda tidak dapat menghapus akun Anda sendiri.');
+    }
+
+    const sql = 'DELETE FROM users WHERE id = ?';
+    db.run(sql, [userIdToDelete], function(err) {
+        if (err) {
+            console.error("Error menghapus pengguna:", err.message);
+            return res.status(500).send('Gagal menghapus pengguna.');
+        }
+        console.log(`Pengguna dengan ID ${userIdToDelete} telah dihapus.`);
+        // Arahkan kembali ke halaman manajemen pengguna
+        res.redirect('/kelola-pengguna');
     });
 });
 
