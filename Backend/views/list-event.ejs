@@ -1,10 +1,32 @@
 <!DOCTYPE html>
-<html>
-<head><title>Kelola Event</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Event</title>
+    <style>
+        /* Style sederhana agar tombol-tombol di atas rapi */
+        .page-actions {
+            margin-bottom: 1.5em;
+        }
+        .page-actions button {
+            padding: 8px 12px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
 <body>
     <h1>Manajemen Event</h1>
-    <a href="/events/new"><button>+ Tambah Event Baru</button></a>
-    <hr>
+    <p>Gunakan halaman ini untuk menambah, mengubah, atau menghapus event.</p>
+
+    <!-- ▼▼▼ Bagian Tombol di Atas Tabel ▼▼▼ -->
+    <div class="page-actions">
+        <a href="/events/new"><button>+ Tambah Event Baru</button></a>
+        <!-- Tombol Edit di sini memerlukan JavaScript, untuk sekarang kita letakkan link Edit di setiap baris -->
+    </div>
+    
     <table border="1" cellpadding="5" cellspacing="0" width="100%">
         <thead>
             <tr>
@@ -12,19 +34,36 @@
                 <th>Nama Event</th>
                 <th>Lokasi</th>
                 <th>Tanggal Mulai</th>
+                <th>Hasil Analisis</th> <!-- KOLOM BARU -->
                 <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
-            <% events.forEach(event => { %>
+            <% if (typeof events !== 'undefined' && events.length > 0) { %>
+                <% events.forEach(event => { %>
+                    <tr>
+                        <td><%= event.id %></td>
+                        <td><%= event.nama_event %></td>
+                        <td><%= event.lokasi %></td>
+                        <td><%= event.tanggal_mulai %></td>
+                        <td>
+                            <!-- Link Analisis pindah ke sini -->
+                            <a href="/events/<%= event.id %>/analisis">Lihat Detail Analisis</a>
+                        </td>
+                        <td>
+                            <!-- Kolom Aksi sekarang untuk Edit dan Hapus -->
+                            <a href="/events/<%= event.id %>/edit">Edit</a> |
+                            <form action="/events/<%= event.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Anda yakin ingin menghapus event ini? Ini tidak bisa dibatalkan.');">
+                                <button type="submit" style="background:none; border:none; color:blue; cursor:pointer; padding:0; text-decoration:underline;">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
                 <tr>
-                    <td><%= event.id %></td>
-                    <td><%= event.nama_event %></td>
-                    <td><%= event.lokasi %></td>
-                    <td><%= event.tanggal_mulai %></td>
-                    <td><a href="/events/<%= event.id %>/analisis">Lihat Analisis</a></td>
+                    <td colspan="6" style="text-align: center;">Belum ada event yang dibuat.</td>
                 </tr>
-            <% }) %>
+            <% } %>
         </tbody>
     </table>
     <br>

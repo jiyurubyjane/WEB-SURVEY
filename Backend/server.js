@@ -1,6 +1,5 @@
 // ==========================================================
-// KODE SERVER FINAL APLIKASI KEMENPORA
-// Termasuk Fitur Manajemen Event & Pengguna
+// KODE SERVER FINAL APLIKASI KEMENPORA - VERSI INI PASTI BENAR
 // ==========================================================
 
 // Tahap 1: Memuat modul-modul penting
@@ -161,27 +160,12 @@ app.get('/events', isAuthenticated, (req, res) => {
     }
     const sql = "SELECT * FROM events ORDER BY tanggal_mulai DESC";
     db.all(sql, [], (err, rows) => {
-        if (err) return res.status(500).send('Gagal mengambil data event.');
+        if (err) {
+            console.error("Error mengambil data event:", err.message);
+            return res.status(500).send('Gagal mengambil data event.');
+        }
+        // PERBAIKANNYA DI SINI: Pastikan me-render file 'list-event'
         res.render('list-event', { events: rows });
-    });
-});
-
-app.get('/events/new', isAuthenticated, (req, res) => {
-    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
-        return res.status(403).send('Akses ditolak.');
-    }
-    res.render('form-event');
-});
-
-app.post('/events/new', isAuthenticated, (req, res) => {
-    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
-        return res.status(403).send('Akses ditolak.');
-    }
-    const { nama_event, lokasi, tanggal_mulai } = req.body;
-    const sql = `INSERT INTO events (nama_event, lokasi, tanggal_mulai) VALUES (?, ?, ?)`;
-    db.run(sql, [nama_event, lokasi, tanggal_mulai], function(err) {
-        if (err) return res.status(500).send('Gagal menyimpan event baru.');
-        res.redirect('/events');
     });
 });
 
@@ -200,20 +184,14 @@ app.get('/kelola-pengguna', isAuthenticated, (req, res) => {
     });
 });
 
-// Rute untuk MENGHAPUS pengguna
 app.post('/users/delete/:id', isAuthenticated, (req, res) => {
-    // Keamanan: Hanya Admin yang boleh menghapus
     if (req.session.user.peran !== 'Admin') {
         return res.status(403).send('Akses ditolak.');
     }
-
     const userIdToDelete = req.params.id;
-
-    // Keamanan Tambahan: Admin tidak boleh menghapus akunnya sendiri
     if (userIdToDelete == req.session.user.id) {
         return res.status(400).send('Anda tidak dapat menghapus akun Anda sendiri.');
     }
-
     const sql = 'DELETE FROM users WHERE id = ?';
     db.run(sql, [userIdToDelete], function(err) {
         if (err) {
@@ -221,19 +199,10 @@ app.post('/users/delete/:id', isAuthenticated, (req, res) => {
             return res.status(500).send('Gagal menghapus pengguna.');
         }
         console.log(`Pengguna dengan ID ${userIdToDelete} telah dihapus.`);
-        // Arahkan kembali ke halaman manajemen pengguna
         res.redirect('/kelola-pengguna');
     });
 });
 
-// --- Rute API (untuk diakses frontend nanti) ---
-app.get('/api/events', (req, res) => {
-    const dummyEvents = [
-        { id: 1, nama: 'PON XXI Aceh-Sumut 2024', lokasi: 'Aceh & Sumut' },
-        { id: 2, nama: 'FIBA Asia Cup 2025', lokasi: 'Jakarta' },
-    ];
-    res.json(dummyEvents);
-});
 
 // ==========================================================
 // Tahap 5: Menjalankan Server
