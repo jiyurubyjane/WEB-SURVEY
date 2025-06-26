@@ -3,57 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Event</title>
+    <title>Hasil Survei</title>
 </head>
 <body>
-    <h1>Manajemen Event</h1>
-    <p>Gunakan halaman ini untuk menambah, mengubah, atau menghapus event.</p>
-    <a href="/events/new"><button>+ Tambah Event Baru</button></a>
+    <!-- Menampilkan nama event yang sedang dilihat -->
+    <h1>Data Survei untuk: <%= event.nama_event %></h1>
     <hr>
     
     <table border="1" cellpadding="5" cellspacing="0" width="100%">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Nama Event</th>
-                <th>Lokasi</th>
-                <th>Tanggal Mulai</th>
-                <th>Hasil Survei</th> <!-- KOLOM BARU -->
-                <th>Hasil Analisis</th>
-                <th>Aksi</th>
+                <th>ID Survei</th>
+                <th>Asal Kota</th>
+                <th>Tujuan Utama?</th>
+                <th>Lama Tinggal (hari)</th>
+                <th>Jml Rombongan</th>
+                <th>Belanja Akomodasi</th>
+                <th>Belanja Makan</th>
+                <!-- Tambahkan kolom lain jika perlu -->
             </tr>
         </thead>
         <tbody>
-            <% if (typeof events !== 'undefined' && events.length > 0) { %>
-                <% events.forEach(event => { %>
+            <% if (typeof surveys !== 'undefined' && surveys.length > 0) { %>
+                <% surveys.forEach(survey => { %>
                     <tr>
-                        <td><%= event.id %></td>
-                        <td><%= event.nama_event %></td>
-                        <td><%= event.lokasi %></td>
-                        <td><%= event.tanggal_mulai %></td>
-                        <td>
-                            <!-- ▼▼▼ LINK BARU UNTUK MELIHAT DATA MENTAH SURVEI ▼▼▼ -->
-                            <a href="/events/<%= event.id %>/surveys">Lihat Data</a>
-                        </td>
-                        <td>
-                            <a href="/events/<%= event.id %>/analisis">Lihat Analisis</a>
-                        </td>
-                        <td>
-                            <a href="/events/<%= event.id %>/edit">Edit</a> |
-                            <form action="/events/<%= event.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Anda yakin ingin menghapus event ini? Ini tidak bisa dibatalkan.');">
-                                <button type="submit" style="background:none; border:none; color:blue; cursor:pointer; padding:0; text-decoration:underline;">Hapus</button>
-                            </form>
-                        </td>
+                        <td><%= survey.id %></td>
+                        <td><%= survey.asal_kota %></td>
+                        <td><%= survey.tujuan_utama %></td>
+                        <td><%= survey.lama_tinggal %></td>
+                        <td><%= survey.jumlah_rombongan %></td>
+                        <td><%= survey.belanja_akomodasi %></td>
+                        <td><%= survey.belanja_makan_minum %></td>
                     </tr>
                 <% }) %>
             <% } else { %>
                 <tr>
-                    <td colspan="7" style="text-align: center;">Belum ada event yang dibuat.</td>
+                    <td colspan="7" style="text-align: center;">Belum ada data survei untuk event ini.</td>
                 </tr>
             <% } %>
         </tbody>
     </table>
     <br>
-    <a href="/dashboard">Kembali ke Dashboard</a>
+    <a href="/events">Kembali ke Manajemen Event</a>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // ==========================================================
-// KODE SERVER FINAL APLIKASI KEMENPORA - VERSI INI PASTI BENAR
+// KODE SERVER FINAL - VERSI INI SUDAH LENGKAP
 // ==========================================================
 
 // Tahap 1: Memuat modul-modul penting
@@ -164,10 +164,96 @@ app.get('/events', isAuthenticated, (req, res) => {
             console.error("Error mengambil data event:", err.message);
             return res.status(500).send('Gagal mengambil data event.');
         }
-        // PERBAIKANNYA DI SINI: Pastikan me-render file 'list-event'
         res.render('list-event', { events: rows });
     });
 });
+
+app.get('/events/new', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
+        return res.status(403).send('Akses ditolak.');
+    }
+    res.render('form-event');
+});
+
+app.post('/events/new', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
+        return res.status(403).send('Akses ditolak.');
+    }
+    const { nama_event, lokasi, tanggal_mulai } = req.body;
+    const sql = `INSERT INTO events (nama_event, lokasi, tanggal_mulai) VALUES (?, ?, ?)`;
+    db.run(sql, [nama_event, lokasi, tanggal_mulai], function(err) {
+        if (err) return res.status(500).send('Gagal menyimpan event baru.');
+        res.redirect('/events');
+    });
+});
+
+app.get('/events/:id/edit', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
+        return res.status(403).send('Akses ditolak.');
+    }
+    const eventId = req.params.id;
+    const sql = "SELECT * FROM events WHERE id = ?";
+    db.get(sql, [eventId], (err, row) => {
+        if (err) return res.status(500).send('Gagal mengambil data event dari database.');
+        if (!row) return res.status(404).send('Event tidak ditemukan.');
+        res.render('form-edit-event', { event: row });
+    });
+});
+
+app.post('/events/:id/update', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
+        return res.status(403).send('Akses ditolak.');
+    }
+    const eventId = req.params.id;
+    const { nama_event, lokasi, tanggal_mulai } = req.body;
+    const sql = `UPDATE events SET nama_event = ?, lokasi = ?, tanggal_mulai = ? WHERE id = ?`;
+    db.run(sql, [nama_event, lokasi, tanggal_mulai, eventId], function(err) {
+        if (err) return res.status(500).send('Gagal mengupdate data event.');
+        console.log(`Event dengan ID ${eventId} telah diupdate.`);
+        res.redirect('/events');
+    });
+});
+
+app.post('/events/:id/delete', isAuthenticated, (req, res) => {
+    if (req.session.user.peran !== 'Admin' && req.session.user.peran !== 'Analis') {
+        return res.status(403).send('Akses ditolak.');
+    }
+    const eventId = req.params.id;
+    const sql = 'DELETE FROM events WHERE id = ?';
+    db.run(sql, [eventId], function(err) {
+        if (err) return res.status(500).send('Gagal menghapus event.');
+        res.redirect('/events');
+    });
+});
+
+// ▼▼▼ RUTE BARU DITAMBAHKAN DI SINI ▼▼▼
+// Rute untuk MENAMPILKAN semua hasil survei untuk satu event
+app.get('/events/:id/surveys', isAuthenticated, (req, res) => {
+    const eventId = req.params.id;
+    let eventData;
+
+    // Pertama, ambil detail event untuk ditampilkan di judul
+    const eventSql = "SELECT * FROM events WHERE id = ?";
+    db.get(eventSql, [eventId], (err, eventRow) => {
+        if (err) return res.status(500).send('Gagal mengambil data event.');
+        if (!eventRow) return res.status(404).send('Event tidak ditemukan.');
+        
+        eventData = eventRow;
+
+        // Kedua, ambil semua data survei yang cocok dengan eventId
+        const surveySql = "SELECT * FROM survey_results WHERE event_id = ?";
+        db.all(surveySql, [eventId], (err, surveyRows) => {
+            if (err) return res.status(500).send('Gagal mengambil data survei.');
+            
+            // Render halaman list-hasil-survei dan kirim kedua data tersebut
+            res.render('list-hasil-survei', {
+                event: eventData,
+                surveys: surveyRows
+            });
+        });
+    });
+});
+// ▲▲▲ AKHIR BAGIAN RUTE BARU ▲▲▲
 
 // --- Rute untuk Manajemen Pengguna ---
 app.get('/kelola-pengguna', isAuthenticated, (req, res) => {
@@ -200,33 +286,6 @@ app.post('/users/delete/:id', isAuthenticated, (req, res) => {
         }
         console.log(`Pengguna dengan ID ${userIdToDelete} telah dihapus.`);
         res.redirect('/kelola-pengguna');
-    });
-});
-
-// Rute untuk MENAMPILKAN semua hasil survei untuk satu event
-app.get('/events/:id/surveys', isAuthenticated, (req, res) => {
-    const eventId = req.params.id;
-    let eventData;
-
-    // Pertama, ambil detail event untuk ditampilkan di judul
-    const eventSql = "SELECT * FROM events WHERE id = ?";
-    db.get(eventSql, [eventId], (err, eventRow) => {
-        if (err) return res.status(500).send('Gagal mengambil data event.');
-        if (!eventRow) return res.status(404).send('Event tidak ditemukan.');
-        
-        eventData = eventRow;
-
-        // Kedua, ambil semua data survei yang cocok dengan eventId
-        const surveySql = "SELECT * FROM survey_results WHERE event_id = ?";
-        db.all(surveySql, [eventId], (err, surveyRows) => {
-            if (err) return res.status(500).send('Gagal mengambil data survei.');
-            
-            // Render halaman list-hasil-survei dan kirim kedua data tersebut
-            res.render('list-hasil-survei', {
-                event: eventData,
-                surveys: surveyRows
-            });
-        });
     });
 });
 

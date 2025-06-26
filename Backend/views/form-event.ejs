@@ -1,18 +1,37 @@
 <!DOCTYPE html>
-<html>
-<head><title>Tambah Event Baru</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Event Baru</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        form { max-width: 600px; }
+        label { display: block; margin-top: 1em; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; margin-top: 1.5em;}
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
 <body>
     <h1>Formulir Event Baru</h1>
+
+    <!-- Form ini akan mengirim data ke alamat /events/new dengan metode POST -->
     <form action="/events/new" method="POST">
-        <label for="nama_event">Nama Event:</label><br>
-        <input type="text" id="nama_event" name="nama_event" required><br><br>
-        <label for="lokasi">Lokasi:</label><br>
-        <input type="text" id="lokasi" name="lokasi"><br><br>
-        <label for="tanggal_mulai">Tanggal Mulai:</label><br>
-        <input type="date" id="tanggal_mulai" name="tanggal_mulai"><br><br>
+        
+        <label for="nama_event">Nama Event:</label>
+        <input type="text" id="nama_event" name="nama_event" placeholder="Contoh: Piala Kemerdekaan 2025" required>
+
+        <label for="lokasi">Lokasi:</label>
+        <input type="text" id="lokasi" name="lokasi" placeholder="Contoh: Jakarta">
+
+        <label for="tanggal_mulai">Tanggal Mulai:</label>
+        <input type="date" id="tanggal_mulai" name="tanggal_mulai" required>
+
+        <br>
         <button type="submit">Simpan Event</button>
     </form>
     <br>
-    <a href="/events">Batal</a>
+    <a href="/events">Batal dan Kembali</a>
 </body>
 </html>
