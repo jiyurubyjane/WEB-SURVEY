@@ -27,6 +27,32 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
+app.post("/register", (req, res) => {
+    const { nama, email, password, peran } = req.body;
+
+    bcrypt.hash(password, 10, (err, hash) => {
+        if (err) {
+            return res.status(500).json({ error: "Gagal memproses password" });
+        }
+
+        const sql = 'INSERT INTO users (nama, email, password_hash, peran) VALUES (?, ?, ?, ?)';
+        const params = [nama, email, hash, peran];
+
+        db.run(sql, params, function(err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(409).json({ error: "Email sudah terdaftar." });
+                }
+                return res.status(400).json({ error: err.message });
+            }
+            res.status(201).json({
+                message: "Pendaftaran berhasil",
+                userId: this.lastID
+            });
+        });
+    });
+});
+
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
     db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
@@ -52,7 +78,6 @@ app.post("/login", (req, res) => {
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (token == null) return res.sendStatus(401);
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
