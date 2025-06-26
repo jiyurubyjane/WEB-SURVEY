@@ -1,19 +1,35 @@
 {
-  "name": "kemenpora-project",
+  "name": "kemenpora-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend API dan server EJS untuk aplikasi survei Kemenpora",
+  "main": "server-api.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server-api.js",
+    "ejs": "node server-ejs.js",
+    "dev": "nodemon server-api.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "express",
+    "kemenpora",
+    "sqlite",
+    "api",
+    "survey"
+  ],
+  "author": [
+    "Cindy Nadila Putri",
+    "Giulia Puspo Negoro"
+  ],
+  "license": "MIT",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

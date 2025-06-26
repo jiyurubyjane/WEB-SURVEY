@@ -1,27 +1,49 @@
-// src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import NotFound from "./pages/NotFound";
-
-const DashboardAdmin = () => <div>Dashboard Admin</div>;
-const DashboardSurveyor = () => <div>Dashboard Surveyor</div>;
-const DashboardInstansi = () => <div>Dashboard Instansi</div>;
+import Unauthorized from "./pages/Unauthorized";
+import PrivateRoute from "./components/PrivateRoute";
+import DashboardAdmin from "./pages/dashboard/DashboardAdmin";
+import DashboardSurveyor from "./pages/dashboard/DashboardSurveyor";
+import DashboardInstansi from "./pages/dashboard/DashboardInstansi";
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
-        <Route path="/dashboard-surveyor" element={<DashboardSurveyor />} />
-        <Route path="/dashboard-instansi" element={<DashboardInstansi />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route
+        path="/dashboard-admin"
+        element={
+          <PrivateRoute allowedRoles={["Admin"]}>
+            <DashboardAdmin />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/dashboard-surveyor"
+        element={
+          <PrivateRoute allowedRoles={["Surveyor"]}>
+            <DashboardSurveyor />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/dashboard-instansi"
+        element={
+          <PrivateRoute allowedRoles={["Instansi"]}>
+            <DashboardInstansi />
+          </PrivateRoute>
+        }
+      />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
