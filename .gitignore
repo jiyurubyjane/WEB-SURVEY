@@ -1,4 +1,6 @@
 /node_modules
+/frontend/node_modules
+/Backend/node_modules
 dist/
 build/
 npm-debug.log*
@@ -12,3 +14,4 @@ lerna-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+*.db
