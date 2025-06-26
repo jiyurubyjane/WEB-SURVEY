@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Pengguna</title>
+</head>
+<body>
+    <h1>Manajemen Pengguna</h1>
+    <p>Berikut adalah daftar semua pengguna yang terdaftar di sistem.</p>
+    <hr>
+    <table border="1" cellpadding="5" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama Lengkap</th>
+                <th>Email</th>
+                <th>Peran</th>
+                <th>Aksi</th> <!-- KOLOM BARU -->
+            </tr>
+        </thead>
+        <tbody>
+            <% if (typeof users !== 'undefined' && users.length > 0) { %>
+                <% users.forEach(user => { %>
+                    <tr>
+                        <td><%= user.id %></td>
+                        <td><%= user.nama %></td>
+                        <td><%= user.email %></td>
+                        <td><%= user.peran %></td>
+                        <td>
+                            <!-- ▼▼▼ BAGIAN BARU UNTUK TOMBOL HAPUS ▼▼▼ -->
+                            <form action="/users/delete/<%= user.id %>" method="POST" style="display:inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');">
+                                <button type="submit">Hapus</button>
+                            </form>
+                            <!-- ▲▲▲ AKHIR BAGIAN BARU ▲▲▲ -->
+                        </td>
+                    </tr>
+                <% }) %>
+            <% } else { %>
+                <tr>
+                    <td colspan="5">Tidak ada data pengguna.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+    <br>
+    <a href="/dashboard">Kembali ke Dashboard</a>
+</body>
+</html>

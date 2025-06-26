@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Event</title>
+</head>
+<body>
+    <h1>Formulir Edit Event</h1>
+
+    <!-- 
+        Form ini akan mengirim data ke alamat spesifik sesuai ID event, 
+        contoh: /events/1/update 
+    -->
+    <form action="/events/<%= event.id %>/update" method="POST">
+        
+        <label for="nama_event">Nama Event:</label><br>
+        <!-- 
+            Atribut 'value' di sini akan mengisi input 
+            dengan data yang sudah ada dari database.
+        -->
+        <input type="text" id="nama_event" name="nama_event" value="<%= event.nama_event %>" required><br><br>
+
+        <label for="lokasi">Lokasi:</label><br>
+        <input type="text" id="lokasi" name="lokasi" value="<%= event.lokasi %>"><br><br>
+
+        <label for="tanggal_mulai">Tanggal Mulai:</label><br>
+        <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="<%= event.tanggal_mulai %>"><br><br>
+
+        <button type="submit">Update Event</button>
+    </form>
+    
+    <br>
+    <a href="/events">Batal</a>
+</body>
+</html>
