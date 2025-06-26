@@ -203,6 +203,32 @@ app.post('/users/delete/:id', isAuthenticated, (req, res) => {
     });
 });
 
+// Rute untuk MENAMPILKAN semua hasil survei untuk satu event
+app.get('/events/:id/surveys', isAuthenticated, (req, res) => {
+    const eventId = req.params.id;
+    let eventData;
+
+    // Pertama, ambil detail event untuk ditampilkan di judul
+    const eventSql = "SELECT * FROM events WHERE id = ?";
+    db.get(eventSql, [eventId], (err, eventRow) => {
+        if (err) return res.status(500).send('Gagal mengambil data event.');
+        if (!eventRow) return res.status(404).send('Event tidak ditemukan.');
+        
+        eventData = eventRow;
+
+        // Kedua, ambil semua data survei yang cocok dengan eventId
+        const surveySql = "SELECT * FROM survey_results WHERE event_id = ?";
+        db.all(surveySql, [eventId], (err, surveyRows) => {
+            if (err) return res.status(500).send('Gagal mengambil data survei.');
+            
+            // Render halaman list-hasil-survei dan kirim kedua data tersebut
+            res.render('list-hasil-survei', {
+                event: eventData,
+                surveys: surveyRows
+            });
+        });
+    });
+});
 
 // ==========================================================
 // Tahap 5: Menjalankan Server
