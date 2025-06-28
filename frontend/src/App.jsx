@@ -8,6 +8,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import DashboardAdmin from "./pages/dashboard/DashboardAdmin";
 import DashboardSurveyor from "./pages/dashboard/DashboardSurveyor";
 import DashboardInstansi from "./pages/dashboard/DashboardInstansi";
+import KelolaEvent from "./pages/dashboard/KelolaEvent";
 
 function App() {
   return (
@@ -38,6 +39,14 @@ function App() {
         element={
           <PrivateRoute allowedRoles={["Instansi"]}>
             <DashboardInstansi />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/kelola-event"
+        element={
+          <PrivateRoute allowedRoles={["Admin"]}>
+            <KelolaEvent />
           </PrivateRoute>
         }
       />

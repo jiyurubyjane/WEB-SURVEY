@@ -20,9 +20,10 @@ function DashboardAdmin() {
         <Link to="/kelola-pengguna">
           <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Kelola Pengguna</button>
         </Link>
-        <Link to="/events">
+        <Link to="/kelola-event">
           <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Kelola Event</button>
         </Link>
+        
         <Link to="/input-survei">
           <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Input Data Survei</button>
         </Link>
