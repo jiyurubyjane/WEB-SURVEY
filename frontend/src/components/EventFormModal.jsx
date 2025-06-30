@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { apiFetch } from '../context/AuthContext';
 
 function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
-  const isEditMode = Boolean(eventData);
-
-  const [formData, setFormData] = useState({
+  const isEditMode = Boolean(eventData?.id);
+  const initialFormData = {
     nama_event: '', lokasi: '', tanggal_mulai: '', tanggal_selesai: '',
     deskripsi: '', jumlah_peserta: '', skala_event: 'Lokal',
     kategori_olahraga_id: null, sponsors: [],
-  });
-  
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
   const [kategoriQuery, setKategoriQuery] = useState('');
   const [kategoriOptions, setKategoriOptions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,12 +17,12 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
   const [currentSponsor, setCurrentSponsor] = useState('');
 
   useEffect(() => {
-    if (isEditMode && eventData) {
+    if (isOpen && eventData) {
       setFormData({
         nama_event: eventData.nama_event || '',
         lokasi: eventData.lokasi || '',
-        tanggal_mulai: eventData.tanggal_mulai ? eventData.tanggal_mulai.split('T')[0] : '',
-        tanggal_selesai: eventData.tanggal_selesai ? eventData.tanggal_selesai.split('T')[0] : '',
+        tanggal_mulai: eventData.tanggal_mulai?.split('T')[0] || '',
+        tanggal_selesai: eventData.tanggal_selesai?.split('T')[0] || '',
         deskripsi: eventData.deskripsi || '',
         jumlah_peserta: eventData.jumlah_peserta || '',
         skala_event: eventData.skala_event || 'Lokal',
@@ -30,15 +30,18 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
         sponsors: eventData.sponsors || [],
       });
       setKategoriQuery(eventData.nama_cabor || '');
+    } else {
+      setFormData(initialFormData);
+      setKategoriQuery('');
     }
-  }, [eventData, isEditMode, isOpen]);
+  }, [eventData, isOpen]);
 
   useEffect(() => {
     if (kategoriQuery.length < 2) {
       setKategoriOptions([]);
       return;
     }
-    const fetchKategori = async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await apiFetch(`/api/kategori-olahraga?q=${kategoriQuery}`);
         const data = await res.json();
@@ -46,8 +49,7 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
       } catch (err) {
         console.error("Gagal mencari kategori:", err);
       }
-    };
-    const timer = setTimeout(() => fetchKategori(), 300);
+    }, 300);
     return () => clearTimeout(timer);
   }, [kategoriQuery]);
 
@@ -79,24 +81,12 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan event');
       onSuccess();
-      handleClose();
+      onClose();
     } catch (err) {
       setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    setFormData({
-      nama_event: '', lokasi: '', tanggal_mulai: '', tanggal_selesai: '',
-      deskripsi: '', jumlah_peserta: '', skala_event: 'Lokal',
-      kategori_olahraga_id: null, sponsors: [],
-    });
-    setKategoriQuery('');
-    setCurrentSponsor('');
-    setError('');
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -156,7 +146,7 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
             </ul>
           </div>
           <div className="mt-6 flex justify-end gap-4">
-            <button type="button" onClick={handleClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Batal</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Batal</button>
             <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300">
               {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Event' : 'Simpan Event')}
             </button>

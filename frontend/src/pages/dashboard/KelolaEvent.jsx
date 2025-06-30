@@ -34,16 +34,9 @@ function KelolaEvent() {
     setIsModalOpen(true);
   };
   
-  const handleOpenEditModal = async (eventId) => {
-    try {
-      const res = await apiFetch(`/api/events/${eventId}`);
-      if (!res.ok) throw new Error('Gagal mengambil detail event');
-      const data = await res.json();
-      setEventToEdit(data);
-      setIsModalOpen(true);
-    } catch(err) {
-      alert(err.message);
-    }
+  const handleOpenEditModal = (event) => {
+    setEventToEdit(event);
+    setIsModalOpen(true);
   };
 
   const handleToggleStatus = async (eventId, currentStatus) => {
@@ -66,11 +59,9 @@ function KelolaEvent() {
   };
   
   const handleDelete = async (eventId) => {
-    if (window.confirm('Anda yakin ingin menghapus event ini secara permanen? Aksi ini tidak bisa dibatalkan.')) {
+    if (window.confirm('Anda yakin ingin menghapus event ini secara permanen?')) {
       try {
-        await apiFetch(`/api/events/${eventId}`, {
-          method: 'DELETE',
-        });
+        await apiFetch(`/api/events/${eventId}`, { method: 'DELETE' });
         fetchEvents();
       } catch (err) {
         alert(err.message);
@@ -112,7 +103,7 @@ function KelolaEvent() {
         </nav>
       </div>
 
-      {isLoading && <p className="p-8">Loading data event...</p>}
+      {isLoading && <p className="p-8">Loading...</p>}
       {error && <p className="p-8 text-red-500">{error}</p>}
 
       {!isLoading && !error && (
@@ -122,7 +113,7 @@ function KelolaEvent() {
               <tr>
                 <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama Event</th>
                 <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lokasi</th>
-                <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tanggal Berlangsung</th>
+                <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tanggal</th>
                 <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
               </tr>
             </thead>
@@ -138,25 +129,20 @@ function KelolaEvent() {
                     <td className="px-5 py-4 border-b border-gray-200 bg-white text-sm">{event.lokasi}</td>
                     <td className="px-5 py-4 border-b border-gray-200 bg-white text-sm">{formatDate(event.tanggal_mulai)} - {formatDate(event.tanggal_selesai)}</td>
                     <td className="px-5 py-4 border-b border-gray-200 bg-white text-sm whitespace-nowrap">
-                      <button onClick={() => handleOpenEditModal(event.id)} className="text-indigo-600 hover:text-indigo-900 font-medium">Edit</button>
+                      <button onClick={() => handleOpenEditModal(event)} className="text-indigo-600 hover:text-indigo-900 font-medium">Edit</button>
                       <button 
                         onClick={() => handleToggleStatus(event.id, event.status)}
                         className="ml-4 text-yellow-600 hover:text-yellow-900 font-medium"
                       >
                         {event.status === 'aktif' ? 'Arsipkan' : 'Aktifkan'}
                       </button>
-                      <button 
-                        onClick={() => handleDelete(event.id)}
-                        className="ml-4 text-red-600 hover:text-red-900 font-medium"
-                      >
-                        Hapus
-                      </button>
+                      <button onClick={() => handleDelete(event.id)} className="ml-4 text-red-600 hover:text-red-900 font-medium">Hapus</button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="text-center py-10 text-gray-500">Tidak ada event dalam kategori ini.</td>
+                  <td colSpan="4" className="text-center py-10 text-gray-500">Tidak ada event.</td>
                 </tr>
               )}
             </tbody>
