@@ -39,7 +39,7 @@ function SurveyDesigner() {
     };
     fetchKuesioner();
   }, [selectedEventId]);
-  
+
   const fetchPertanyaan = async () => {
     if (selectedKuesioner) {
       try {
@@ -57,7 +57,7 @@ function SurveyDesigner() {
   useEffect(() => {
     fetchPertanyaan();
   }, [selectedKuesioner]);
-  
+
   const handleAddKuesioner = async () => {
     const tipeResponden = prompt("Masukkan Tipe Responden (contoh: Penonton, UMKM):");
     if (tipeResponden && selectedEventId) {
@@ -73,7 +73,23 @@ function SurveyDesigner() {
       }
     }
   };
-  
+
+  const handleDeleteKuesioner = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus tipe responden ini?')) return;
+    try {
+      await apiFetch(`/api/kuesioner/${id}`, { method: 'DELETE' });
+      const kuesionerRes = await apiFetch(`/api/events/${selectedEventId}/kuesioner`);
+      setKuesionerList(await kuesionerRes.json());
+      if (selectedKuesioner?.id === id) {
+        setSelectedKuesioner(null);
+        setPertanyaanList([]);
+      }
+    } catch (error) {
+      alert('Gagal menghapus tipe responden');
+      console.error(error);
+    }
+  };
+
   const handleAddPertanyaan = async () => {
     if (!selectedKuesioner) return alert('Pilih kuesioner terlebih dahulu');
     const teks_pertanyaan = prompt("Masukkan teks pertanyaan baru:");
@@ -96,6 +112,17 @@ function SurveyDesigner() {
     }
   };
 
+  const handleDeletePertanyaan = async (id) => {
+    if (!window.confirm("Yakin ingin menghapus pertanyaan ini?")) return;
+    try {
+      await apiFetch(`/api/pertanyaan/${id}`, { method: 'DELETE' });
+      fetchPertanyaan();
+    } catch (error) {
+      console.error("Gagal menghapus pertanyaan:", error);
+      alert("Gagal menghapus pertanyaan.");
+    }
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Perancangan Kuesioner</h1>
@@ -114,7 +141,12 @@ function SurveyDesigner() {
             <h3 className="font-bold text-lg mb-2">2. Pilih Tipe Responden</h3>
             <ul className="space-y-2">
               {kuesionerList.map(k => (
-                <li key={k.id} onClick={() => setSelectedKuesioner(k)} className={`p-2 rounded-md cursor-pointer ${selectedKuesioner?.id === k.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}>{k.tipe_responden}</li>
+                <li key={k.id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                  <span onClick={() => setSelectedKuesioner(k)} className={`cursor-pointer ${selectedKuesioner?.id === k.id ? 'text-white bg-blue-500 p-1 rounded' : ''}`}>
+                    {k.tipe_responden}
+                  </span>
+                  <button onClick={() => handleDeleteKuesioner(k.id)} className="text-red-500 hover:underline text-sm">Hapus</button>
+                </li>
               ))}
             </ul>
             <button onClick={handleAddKuesioner} className="w-full mt-4 bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 text-sm">+ Tambah Tipe Responden</button>
@@ -127,8 +159,18 @@ function SurveyDesigner() {
             <div className="space-y-3">
               {pertanyaanList.length > 0 ? pertanyaanList.map(p => (
                 <div key={p.id} className="p-3 border rounded-md bg-gray-50 flex justify-between items-center">
-                  <p className="font-medium">{p.urutan}. {p.teks_pertanyaan}</p>
-                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{p.tipe_jawaban}</span>
+                  <div>
+                    <p className="font-medium">{p.urutan}. {p.teks_pertanyaan}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{p.tipe_jawaban}</span>
+                    <button
+                      onClick={() => handleDeletePertanyaan(p.id)}
+                      className="text-red-500 text-xs hover:underline"
+                    >
+                      Hapus
+                    </button>
+                  </div>
                 </div>
               )) : (
                 <p className="text-center text-gray-500 py-8">{selectedKuesioner ? 'Belum ada pertanyaan.' : 'Pilih tipe responden.'}</p>

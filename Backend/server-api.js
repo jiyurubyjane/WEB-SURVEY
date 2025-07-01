@@ -141,6 +141,25 @@ app.post("/kuesioner", verifyToken, isAdmin, (req, res) => {
     });
 });
 
+// --- Hapus 1 Tipe Responden ---
+app.delete("/kuesioner/:id", verifyToken, isAdmin, (req, res) => {
+  const { id } = req.params;
+  db.run(
+    "DELETE FROM kuesioner WHERE id = ?",
+    [id],
+    function (err) {
+      if (err) {
+        console.error("Error hapus tipe responden:", err);
+        return res.status(500).json({ error: "Gagal menghapus tipe responden." });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Tipe responden tidak ditemukan." });
+      }
+      res.json({ message: "Tipe responden berhasil dihapus." });
+    }
+  );
+});
+
 app.get("/kuesioner/:kuesionerId/pertanyaan", verifyToken, (req, res) => {
     db.all("SELECT * FROM pertanyaan WHERE kuesioner_id = ? ORDER BY urutan ASC", [req.params.kuesionerId], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -153,6 +172,20 @@ app.post("/pertanyaan", verifyToken, isAdmin, (req, res) => {
     db.run("INSERT INTO pertanyaan (kuesioner_id, teks_pertanyaan, tipe_jawaban, urutan) VALUES (?, ?, ?, ?)", [kuesioner_id, teks_pertanyaan, tipe_jawaban, urutan], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.status(201).json({ pertanyaanId: this.lastID });
+    });
+});
+
+app.delete("/pertanyaan/:id", verifyToken, isAdmin, (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM pertanyaan WHERE id = ?", [id], function(err) {
+        if (err) {
+            console.error("Gagal menghapus pertanyaan:", err.message);
+            return res.status(500).json({ error: "Gagal menghapus pertanyaan." });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: "Pertanyaan tidak ditemukan." });
+        }
+        res.json({ message: "Pertanyaan berhasil dihapus." });
     });
 });
 
