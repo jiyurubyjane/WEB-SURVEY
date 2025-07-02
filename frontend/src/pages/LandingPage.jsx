@@ -38,7 +38,10 @@ function LandingPage() {
           </div>
           
           <div>
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-[#202262] focus:outline-none">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="p-2 rounded-md text-[#202262] bg-transparent hover:bg-[#14BBF0] hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white transition-colors duration-200"
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
               </svg>
@@ -47,10 +50,15 @@ function LandingPage() {
         </div>
         
         {isMenuOpen && (
-          <div className="bg-white text-gray-800 shadow-lg absolute w-full md:w-auto md:right-6 md:top-16 md:rounded-md">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <div className="bg-white text-gray-800 shadow-lg absolute right-6 mt-2 w-56 rounded-md origin-top-right">
+            <div className="py-1">
               {navLinks.map((link) => (
-                <Link key={link.name} to={link.path} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onClick={() => setIsMenuOpen(false)}>
+                <Link 
+                  key={link.name} 
+                  to={link.path} 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-[#14BBF0] hover:text-white" 
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {link.name}
                 </Link>
               ))}
@@ -59,13 +67,13 @@ function LandingPage() {
         )}
       </header>
 
-      <main className="relative z-10 flex items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
+      <main className="absolute inset-0 z-10 flex items-center justify-center">
         <div className="text-center px-6">
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4 text-[#202262]">
             Sport Impact<br/>Smart Nation
           </h1>
-          <p className="text-lg md:text-xl text-[#14BBF0] max-w-3xl mx-auto mb-8">
-            Platform survei untuk mengukur dampak ekonomi dari event olahraga
+          <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-16 text-[#14BBF0]">
+            Platform survei untuk mengukur dampak ekonomi dari event olahraga.
           </p>
           <Link to="/login" className="bg-[#14BBF0] text-white font-bold py-3 px-8 rounded-md hover:bg-opacity-90 transition duration-300 shadow-lg">
             Mulai Survei

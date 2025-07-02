@@ -15,10 +15,7 @@
     "api",
     "survey"
   ],
-  "author": [
-    "Cindy Nadila Putri",
-    "Giulia Puspo Negoro"
-  ],
+  "author": "Cindy Nadila Putri, Giulia Puspo Negoro",
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -26,7 +23,6 @@
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
-    "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
