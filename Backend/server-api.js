@@ -4,12 +4,17 @@ const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const jwt = require("jsonwebtoken");
+const { Parser } = require('json2csv');
 
 const app = express();
-const port = 3000;
+const port = 3001; 
 const JWT_SECRET = "kunci-rahasia-jwt-yang-super-aman-dan-panjang";
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ 
+    origin: "http://localhost:5173", 
+    credentials: true,
+    exposedHeaders: ['Content-Disposition'] 
+}));
 app.use(express.json());
 
 const dbPath = path.join(__dirname, "kemenpora.db");
@@ -34,6 +39,7 @@ const isAdmin = (req, res, next) => {
     else res.status(403).json({ message: "Akses ditolak: Hanya untuk Admin." });
 };
 
+// Endpoint untuk Login
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
     db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
@@ -50,8 +56,10 @@ app.post("/login", (req, res) => {
     });
 });
 
+// Endpoint untuk mendapatkan data user yang sedang login
 app.get("/me", verifyToken, (req, res) => res.json(req.user));
 
+// Endpoint untuk kategori olahraga
 app.get("/kategori-olahraga", verifyToken, (req, res) => {
     const { q = '' } = req.query;
     db.all("SELECT * FROM kategori_olahraga WHERE nama_cabor LIKE ? ORDER BY nama_cabor ASC", [`%${q}%`], (err, rows) => {
@@ -60,6 +68,7 @@ app.get("/kategori-olahraga", verifyToken, (req, res) => {
     });
 });
 
+// Endpoint untuk mendapatkan daftar event
 app.get("/events", verifyToken, (req, res) => {
     const { status = 'aktif' } = req.query;
     db.all("SELECT * FROM events WHERE status = ? ORDER BY tanggal_mulai DESC", [status], (err, rows) => {
@@ -68,6 +77,7 @@ app.get("/events", verifyToken, (req, res) => {
     });
 });
 
+// Endpoint untuk membuat event baru
 app.post("/events", verifyToken, isAdmin, (req, res) => {
     const { nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, sponsors = [] } = req.body;
     db.run('BEGIN TRANSACTION;');
@@ -89,6 +99,7 @@ app.post("/events", verifyToken, isAdmin, (req, res) => {
     });
 });
 
+// Endpoint untuk mendapatkan detail satu event
 app.get("/events/:id", verifyToken, (req, res) => {
     const sqlEvent = `SELECT e.*, ko.nama_cabor FROM events e LEFT JOIN kategori_olahraga ko ON e.kategori_olahraga_id = ko.id WHERE e.id = ?`;
     const sqlSponsors = `SELECT nama_sponsor FROM sponsors WHERE event_id = ?`;
@@ -103,6 +114,7 @@ app.get("/events/:id", verifyToken, (req, res) => {
     });
 });
 
+// Endpoint untuk update event
 app.put("/events/:id", verifyToken, isAdmin, (req, res) => {
     const { nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, sponsors = [] } = req.body;
     db.run('BEGIN TRANSACTION;');
@@ -126,6 +138,7 @@ app.put("/events/:id", verifyToken, isAdmin, (req, res) => {
     });
 });
 
+// Endpoint untuk kuesioner
 app.get("/events/:eventId/kuesioner", verifyToken, (req, res) => {
     db.all("SELECT * FROM kuesioner WHERE event_id = ?", [req.params.eventId], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -141,13 +154,9 @@ app.post("/kuesioner", verifyToken, isAdmin, (req, res) => {
     });
 });
 
-// --- Hapus 1 Tipe Responden ---
 app.delete("/kuesioner/:id", verifyToken, isAdmin, (req, res) => {
   const { id } = req.params;
-  db.run(
-    "DELETE FROM kuesioner WHERE id = ?",
-    [id],
-    function (err) {
+  db.run("DELETE FROM kuesioner WHERE id = ?", [id], function (err) {
       if (err) {
         console.error("Error hapus tipe responden:", err);
         return res.status(500).json({ error: "Gagal menghapus tipe responden." });
@@ -160,6 +169,7 @@ app.delete("/kuesioner/:id", verifyToken, isAdmin, (req, res) => {
   );
 });
 
+// Endpoint untuk pertanyaan
 app.get("/kuesioner/:kuesionerId/pertanyaan", verifyToken, (req, res) => {
     db.all("SELECT * FROM pertanyaan WHERE kuesioner_id = ? ORDER BY urutan ASC", [req.params.kuesionerId], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -189,6 +199,141 @@ app.delete("/pertanyaan/:id", verifyToken, isAdmin, (req, res) => {
     });
 });
 
+// =================================================================
+// === ENDPOINT SUBMIT SURVEI (VERSI FINAL v3) ===
+// =================================================================
+app.post("/jawaban", verifyToken, (req, res) => {
+    const { kuesionerId, jawaban } = req.body;
+    const surveyorId = req.user.id; 
+
+    if (!kuesionerId || !jawaban || !Array.isArray(jawaban) || jawaban.length === 0) {
+        return res.status(400).json({ message: "Data yang dikirim tidak lengkap." });
+    }
+
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION;', (err) => {
+            if (err) { return res.status(500).json({ message: "Gagal memulai transaksi database." }); }
+
+            const sqlSubmission = `INSERT INTO submissions (kuesioner_id, surveyor_id) VALUES (?, ?)`;
+            db.run(sqlSubmission, [kuesionerId, surveyorId], function(err) {
+                if (err) {
+                    db.run('ROLLBACK;');
+                    return res.status(500).json({ message: "Gagal membuat entri survei.", error: err.message });
+                }
+
+                const submissionId = this.lastID;
+
+                // PERBAIKAN: Menambahkan kolom 'session_id' ke dalam query INSERT
+                const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, submission_id, session_id) VALUES (?, ?, ?, ?)`;
+                const stmt = db.prepare(sqlJawaban, (err) => {
+                    if (err) {
+                        db.run('ROLLBACK;');
+                        return res.status(500).json({ message: "Gagal mempersiapkan statement database." });
+                    }
+                });
+
+                let completed = 0;
+                let errorOccurred = false;
+
+                jawaban.forEach(j => {
+                    // PERBAIKAN: Menambahkan 'submissionId' sebagai nilai untuk session_id
+                    stmt.run(j.jawaban_teks, j.pertanyaan_id, submissionId, submissionId, function(err) {
+                        if (err) {
+                            if (!errorOccurred) {
+                                errorOccurred = true;
+                                db.run('ROLLBACK;');
+                                if (!res.headersSent) {
+                                    res.status(500).json({ message: "Gagal menyimpan jawaban.", error: err.message });
+                                }
+                            }
+                            return;
+                        }
+                        
+                        completed++;
+                        if (completed === jawaban.length && !errorOccurred) {
+                            stmt.finalize((err) => {
+                                if (err) {
+                                    db.run('ROLLBACK;');
+                                    if (!res.headersSent) {
+                                        res.status(500).json({ message: "Gagal menyelesaikan proses.", error: err.message });
+                                    }
+                                    return;
+                                }
+                                db.run('COMMIT;', (err) => {
+                                    if (err) {
+                                        if (!res.headersSent) {
+                                            res.status(500).json({ message: "Gagal menyimpan perubahan." });
+                                        }
+                                        return;
+                                    }
+                                    if (!res.headersSent) {
+                                        res.status(201).json({ message: "Survei berhasil disubmit!" });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    });
+});
+
+
+// =================================================================
+// === ENDPOINT DOWNLOAD (VERSI FINAL) ===
+// =================================================================
+app.get("/events/:eventId/hasil-survei/download", verifyToken, (req, res) => {
+    try {
+        const { eventId } = req.params;
+
+        const query = `
+            SELECT
+                s.id AS submission_id,
+                s.created_at AS tanggal_submit,
+                u.nama AS nama_surveyor,
+                k.tipe_responden,
+                p.teks_pertanyaan,
+                j.isi_jawaban AS jawaban_teks
+            FROM jawaban j
+            JOIN submissions s ON j.submission_id = s.id
+            JOIN users u ON s.surveyor_id = u.id
+            JOIN pertanyaan p ON j.pertanyaan_id = p.id
+            JOIN kuesioner k ON p.kuesioner_id = k.id
+            WHERE k.event_id = ?
+            ORDER BY s.id, p.urutan;
+        `;
+
+        db.all(query, [eventId], (err, rows) => {
+            if (err) {
+                return res.status(500).json({ 
+                    message: "Gagal mengambil data dari database.",
+                    error: err.message 
+                });
+            }
+
+            if (rows.length === 0) {
+                const parser = new Parser({ fields: ['Pesan'] });
+                const csv = parser.parse([{ Pesan: 'Tidak ada data survei untuk event ini.' }]);
+                res.header('Content-Type', 'text/csv');
+                res.attachment(`hasil-survei-event-${eventId}-kosong.csv`);
+                return res.send(csv);
+            }
+
+            const json2csvParser = new Parser();
+            const csv = json2csvParser.parse(rows);
+
+            res.header('Content-Type', 'text/csv');
+            res.attachment(`hasil-survei-event-${eventId}.csv`);
+            res.send(csv);
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
+    }
+});
+
+// Menjalankan server
 app.listen(port, () => {
     console.log(`API server aktif di http://localhost:${port}`);
 });

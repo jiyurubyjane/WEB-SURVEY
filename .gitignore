@@ -1,6 +1,8 @@
 /node_modules
 /frontend/node_modules
 /Backend/node_modules
+/Backend/kemenpora.db
+/Backend/backend-log.txt
 dist/
 build/
 npm-debug.log*
