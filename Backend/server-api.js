@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
-const path =require("path");
+const path = require("path");
 const jwt = require("jsonwebtoken");
 const { Parser } = require('json2csv');
 
@@ -39,7 +39,6 @@ const isAdmin = (req, res, next) => {
     else res.status(403).json({ message: "Akses ditolak: Hanya untuk Admin." });
 };
 
-// ... (Semua endpoint lama Anda dari /login sampai /pertanyaan/id tetap sama) ...
 // Endpoint untuk Login
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
@@ -224,6 +223,7 @@ app.post("/jawaban", verifyToken, (req, res) => {
 
                 const submissionId = this.lastID;
 
+                // PERBAIKAN: Menambahkan kolom 'session_id' ke dalam query INSERT
                 const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, submission_id, session_id) VALUES (?, ?, ?, ?)`;
                 const stmt = db.prepare(sqlJawaban, (err) => {
                     if (err) {
@@ -236,6 +236,7 @@ app.post("/jawaban", verifyToken, (req, res) => {
                 let errorOccurred = false;
 
                 jawaban.forEach(j => {
+                    // PERBAIKAN: Menambahkan 'submissionId' sebagai nilai untuk session_id
                     stmt.run(j.jawaban_teks, j.pertanyaan_id, submissionId, submissionId, function(err) {
                         if (err) {
                             if (!errorOccurred) {
@@ -277,6 +278,7 @@ app.post("/jawaban", verifyToken, (req, res) => {
         });
     });
 });
+
 
 // =================================================================
 // === ENDPOINT DOWNLOAD (DENGAN FORMAT EXCEL/PIVOT) ===
@@ -335,10 +337,11 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, (req, res) => {
           'ID Pengisian', 'Tanggal Submit', 'Nama Surveyor', 'Tipe Responden',
           ...Array.from(semuaPertanyaan).sort()
         ];
-        // setelah build dataUntukCsv dan fields...
-            const parser = new Parser({ fields });
-                let csvBody = parser.parse(dataUntukCsv);
-                csv = '\uFEFF' + csvBody;
+       // setelah build dataUntukCsv dan fields...
+        const parser = new Parser({ fields });
+        let csvBody = parser.parse(dataUntukCsv);
+        csv = '\uFEFF' + csvBody;
+
       }
 
       // —– PERBAIKAN BAGIAN DOWNLOAD CSV —–
