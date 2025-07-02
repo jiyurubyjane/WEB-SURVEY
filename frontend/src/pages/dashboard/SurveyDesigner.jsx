@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../../context/AuthContext';
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 function SurveyDesigner() {
   const [events, setEvents] = useState([]);
@@ -8,38 +9,35 @@ function SurveyDesigner() {
   const [selectedKuesioner, setSelectedKuesioner] = useState(null);
   const [pertanyaanList, setPertanyaanList] = useState([]);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await apiFetch('/api/events?status=aktif');
-        const data = await res.json();
-        setEvents(data);
-      } catch (error) {
-        console.error("Gagal memuat event:", error);
-      }
-    };
-    fetchEvents();
-  }, []);
+  // Fungsi untuk mengambil data event
+  const fetchEvents = async () => {
+    try {
+      const res = await apiFetch('/api/events?status=aktif');
+      const data = await res.json();
+      setEvents(data);
+    } catch (error) {
+      console.error("Gagal memuat event:", error);
+    }
+  };
 
-  useEffect(() => {
+  // Fungsi untuk mengambil data kuesioner
+  const fetchKuesioner = async () => {
     if (!selectedEventId) {
       setKuesionerList([]);
       setSelectedKuesioner(null);
       return;
     }
-    const fetchKuesioner = async () => {
-      try {
-        const res = await apiFetch(`/api/events/${selectedEventId}/kuesioner`);
-        const data = await res.json();
-        setKuesionerList(data);
-        setSelectedKuesioner(null);
-      } catch (error) {
-        console.error("Gagal memuat kuesioner:", error);
-      }
-    };
-    fetchKuesioner();
-  }, [selectedEventId]);
+    try {
+      const res = await apiFetch(`/api/events/${selectedEventId}/kuesioner`);
+      const data = await res.json();
+      setKuesionerList(data);
+      setSelectedKuesioner(null);
+    } catch (error) {
+      console.error("Gagal memuat kuesioner:", error);
+    }
+  };
 
+  // Fungsi untuk mengambil pertanyaan
   const fetchPertanyaan = async () => {
     if (selectedKuesioner) {
       try {
@@ -55,71 +53,157 @@ function SurveyDesigner() {
   };
 
   useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  useEffect(() => {
+    fetchKuesioner();
+  }, [selectedEventId]);
+
+  useEffect(() => {
     fetchPertanyaan();
   }, [selectedKuesioner]);
 
+  // =================================================================
+  // === PERUBAHAN: Fungsi Tambah Tipe Responden dengan SweetAlert ===
+  // =================================================================
   const handleAddKuesioner = async () => {
-    const tipeResponden = prompt("Masukkan Tipe Responden (contoh: Penonton, UMKM):");
+    const { value: tipeResponden } = await Swal.fire({
+      title: 'Tambah Tipe Responden Baru',
+      input: 'text',
+      inputLabel: 'Nama Tipe Responden (contoh: Penonton, UMKM)',
+      inputPlaceholder: 'Masukkan nama tipe...',
+      showCancelButton: true,
+      confirmButtonText: 'Tambah',
+      cancelButtonText: 'Batal',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Anda perlu mengisi nama tipe responden!'
+        }
+      }
+    });
+
     if (tipeResponden && selectedEventId) {
       try {
         await apiFetch('/api/kuesioner', {
           method: 'POST',
           body: JSON.stringify({ event_id: selectedEventId, tipe_responden: tipeResponden, nama_kuesioner: `Kuesioner untuk ${tipeResponden}` })
         });
-        const kuesionerRes = await apiFetch(`/api/events/${selectedEventId}/kuesioner`);
-        setKuesionerList(await kuesionerRes.json());
+        fetchKuesioner(); // Refresh daftar
+        Swal.fire('Berhasil!', `Tipe responden "${tipeResponden}" telah ditambahkan.`, 'success');
       } catch (error) {
-        alert('Gagal menambah kuesioner');
+        Swal.fire('Gagal!', 'Terjadi kesalahan saat menambah kuesioner.', 'error');
       }
     }
   };
 
-  const handleDeleteKuesioner = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus tipe responden ini?')) return;
-    try {
-      await apiFetch(`/api/kuesioner/${id}`, { method: 'DELETE' });
-      const kuesionerRes = await apiFetch(`/api/events/${selectedEventId}/kuesioner`);
-      setKuesionerList(await kuesionerRes.json());
-      if (selectedKuesioner?.id === id) {
-        setSelectedKuesioner(null);
-        setPertanyaanList([]);
-      }
-    } catch (error) {
-      alert('Gagal menghapus tipe responden');
-      console.error(error);
+  // =================================================================
+  // === PERUBAHAN: Fungsi Hapus Tipe Responden dengan SweetAlert ===
+  // =================================================================
+  const handleDeleteKuesioner = async (id, namaTipe) => {
+    const result = await Swal.fire({
+        title: 'Anda yakin?',
+        text: `Anda akan menghapus tipe responden "${namaTipe}". Aksi ini tidak bisa dibatalkan!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await apiFetch(`/api/kuesioner/${id}`, { method: 'DELETE' });
+            fetchKuesioner(); // Refresh daftar
+            if (selectedKuesioner?.id === id) {
+                setSelectedKuesioner(null);
+            }
+            Swal.fire('Terhapus!', `Tipe responden "${namaTipe}" berhasil dihapus.`, 'success');
+        } catch (error) {
+            Swal.fire('Gagal!', 'Gagal menghapus tipe responden.', 'error');
+            console.error(error);
+        }
     }
   };
 
+  // =================================================================
+  // === PERUBAHAN: Fungsi Tambah Pertanyaan dengan SweetAlert ===
+  // =================================================================
   const handleAddPertanyaan = async () => {
-    if (!selectedKuesioner) return alert('Pilih kuesioner terlebih dahulu');
-    const teks_pertanyaan = prompt("Masukkan teks pertanyaan baru:");
-    if (teks_pertanyaan) {
-      const tipe_jawaban = prompt("Pilih tipe jawaban: (teks, angka, nominal, pilihan_ganda, ya_tidak)", "teks");
-      try {
-        await apiFetch('/api/pertanyaan', {
-          method: 'POST',
-          body: JSON.stringify({
-            kuesioner_id: selectedKuesioner.id,
-            teks_pertanyaan,
-            tipe_jawaban,
-            urutan: pertanyaanList.length + 1
-          })
-        });
-        fetchPertanyaan();
-      } catch (error) {
-        alert('Gagal menambah pertanyaan');
-      }
+    if (!selectedKuesioner) {
+        Swal.fire('Peringatan', 'Pilih tipe responden terlebih dahulu.', 'warning');
+        return;
+    }
+    
+    const { value: formValues } = await Swal.fire({
+        title: 'Tambah Pertanyaan Baru',
+        html:
+            '<input id="swal-input1" class="swal2-input" placeholder="Teks pertanyaan...">' +
+            '<select id="swal-input2" class="swal2-select">' +
+                '<option value="teks">Teks</option>' +
+                '<option value="angka">Angka</option>' +
+                '<option value="nominal">Nominal (Rp)</option>' +
+                '<option value="ya_tidak">Ya/Tidak</option>' +
+            '</select>',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+            const teks = document.getElementById('swal-input1').value;
+            const tipe = document.getElementById('swal-input2').value;
+            if (!teks) {
+                Swal.showValidationMessage('Teks pertanyaan tidak boleh kosong');
+                return null;
+            }
+            return { teks_pertanyaan: teks, tipe_jawaban: tipe };
+        }
+    });
+
+    if (formValues) {
+        try {
+            await apiFetch('/api/pertanyaan', {
+                method: 'POST',
+                body: JSON.stringify({
+                    kuesioner_id: selectedKuesioner.id,
+                    teks_pertanyaan: formValues.teks_pertanyaan,
+                    tipe_jawaban: formValues.tipe_jawaban,
+                    urutan: pertanyaanList.length + 1
+                })
+            });
+            fetchPertanyaan();
+            Swal.fire('Berhasil!', 'Pertanyaan baru telah ditambahkan.', 'success');
+        } catch (error) {
+            Swal.fire('Gagal!', 'Gagal menambah pertanyaan.', 'error');
+        }
     }
   };
 
-  const handleDeletePertanyaan = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus pertanyaan ini?")) return;
-    try {
-      await apiFetch(`/api/pertanyaan/${id}`, { method: 'DELETE' });
-      fetchPertanyaan();
-    } catch (error) {
-      console.error("Gagal menghapus pertanyaan:", error);
-      alert("Gagal menghapus pertanyaan.");
+  // =================================================================
+  // === PERUBAHAN: Fungsi Hapus Pertanyaan dengan SweetAlert ===
+  // =================================================================
+  const handleDeletePertanyaan = async (id, teksPertanyaan) => {
+    const result = await Swal.fire({
+        title: "Anda yakin?",
+        text: `Anda akan menghapus pertanyaan: "${teksPertanyaan}"`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await apiFetch(`/api/pertanyaan/${id}`, { method: 'DELETE' });
+            fetchPertanyaan();
+            Swal.fire('Terhapus!', 'Pertanyaan berhasil dihapus.', 'success');
+        } catch (error) {
+            console.error("Gagal menghapus pertanyaan:", error);
+            Swal.fire('Gagal!', 'Gagal menghapus pertanyaan.', 'error');
+        }
     }
   };
 
@@ -145,7 +229,7 @@ function SurveyDesigner() {
                   <span onClick={() => setSelectedKuesioner(k)} className={`cursor-pointer ${selectedKuesioner?.id === k.id ? 'text-white bg-blue-500 p-1 rounded' : ''}`}>
                     {k.tipe_responden}
                   </span>
-                  <button onClick={() => handleDeleteKuesioner(k.id)} className="text-red-500 hover:underline text-sm">Hapus</button>
+                  <button onClick={() => handleDeleteKuesioner(k.id, k.tipe_responden)} className="text-red-500 hover:underline text-sm">Hapus</button>
                 </li>
               ))}
             </ul>
@@ -165,7 +249,7 @@ function SurveyDesigner() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{p.tipe_jawaban}</span>
                     <button
-                      onClick={() => handleDeletePertanyaan(p.id)}
+                      onClick={() => handleDeletePertanyaan(p.id, p.teks_pertanyaan)}
                       className="text-red-500 text-xs hover:underline"
                     >
                       Hapus
