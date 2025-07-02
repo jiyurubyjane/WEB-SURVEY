@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+const path =require("path");
 const jwt = require("jsonwebtoken");
 const { Parser } = require('json2csv');
 
@@ -39,6 +39,7 @@ const isAdmin = (req, res, next) => {
     else res.status(403).json({ message: "Akses ditolak: Hanya untuk Admin." });
 };
 
+// ... (Semua endpoint lama Anda dari /login sampai /pertanyaan/id tetap sama) ...
 // Endpoint untuk Login
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
@@ -223,7 +224,6 @@ app.post("/jawaban", verifyToken, (req, res) => {
 
                 const submissionId = this.lastID;
 
-                // PERBAIKAN: Menambahkan kolom 'session_id' ke dalam query INSERT
                 const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, submission_id, session_id) VALUES (?, ?, ?, ?)`;
                 const stmt = db.prepare(sqlJawaban, (err) => {
                     if (err) {
@@ -236,7 +236,6 @@ app.post("/jawaban", verifyToken, (req, res) => {
                 let errorOccurred = false;
 
                 jawaban.forEach(j => {
-                    // PERBAIKAN: Menambahkan 'submissionId' sebagai nilai untuk session_id
                     stmt.run(j.jawaban_teks, j.pertanyaan_id, submissionId, submissionId, function(err) {
                         if (err) {
                             if (!errorOccurred) {
@@ -279,58 +278,84 @@ app.post("/jawaban", verifyToken, (req, res) => {
     });
 });
 
-
 // =================================================================
-// === ENDPOINT DOWNLOAD (VERSI FINAL) ===
+// === ENDPOINT DOWNLOAD (DENGAN FORMAT EXCEL/PIVOT) ===
 // =================================================================
 app.get("/events/:eventId/hasil-survei/download", verifyToken, (req, res) => {
-    try {
-        const { eventId } = req.params;
+  try {
+    const { eventId } = req.params;
 
-        const query = `
-            SELECT
-                s.id AS submission_id,
-                s.created_at AS tanggal_submit,
-                u.nama AS nama_surveyor,
-                k.tipe_responden,
-                p.teks_pertanyaan,
-                j.isi_jawaban AS jawaban_teks
-            FROM jawaban j
-            JOIN submissions s ON j.submission_id = s.id
-            JOIN users u ON s.surveyor_id = u.id
-            JOIN pertanyaan p ON j.pertanyaan_id = p.id
-            JOIN kuesioner k ON p.kuesioner_id = k.id
-            WHERE k.event_id = ?
-            ORDER BY s.id, p.urutan;
-        `;
+    const query = `
+      SELECT
+        s.id AS submission_id,
+        s.created_at AS tanggal_submit,
+        u.nama AS nama_surveyor,
+        k.tipe_responden,
+        p.teks_pertanyaan,
+        j.isi_jawaban AS jawaban_teks
+      FROM jawaban j
+      JOIN submissions s ON j.submission_id = s.id
+      JOIN users u ON s.surveyor_id = u.id
+      JOIN pertanyaan p ON j.pertanyaan_id = p.id
+      JOIN kuesioner k ON p.kuesioner_id = k.id
+      WHERE k.event_id = ?
+      ORDER BY s.id, p.urutan;
+    `;
 
-        db.all(query, [eventId], (err, rows) => {
-            if (err) {
-                return res.status(500).json({ 
-                    message: "Gagal mengambil data dari database.",
-                    error: err.message 
-                });
-            }
-
-            if (rows.length === 0) {
-                const parser = new Parser({ fields: ['Pesan'] });
-                const csv = parser.parse([{ Pesan: 'Tidak ada data survei untuk event ini.' }]);
-                res.header('Content-Type', 'text/csv');
-                res.attachment(`hasil-survei-event-${eventId}-kosong.csv`);
-                return res.send(csv);
-            }
-
-            const json2csvParser = new Parser();
-            const csv = json2csvParser.parse(rows);
-
-            res.header('Content-Type', 'text/csv');
-            res.attachment(`hasil-survei-event-${eventId}.csv`);
-            res.send(csv);
+    db.all(query, [eventId], (err, rows) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Gagal mengambil data dari database.",
+          error: err.message
         });
+      }
 
-    } catch (error) {
-        res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
-    }
+      let csv;
+      if (rows.length === 0) {
+        const parser = new Parser({ fields: ['Pesan'] });
+        csv = parser.parse([{ Pesan: 'Tidak ada data survei untuk event ini.' }]);
+      } else {
+        // Buat pivot dan parse CSV
+        const hasilPivot = {};
+        const semuaPertanyaan = new Set();
+        rows.forEach(row => {
+          semuaPertanyaan.add(row.teks_pertanyaan);
+          if (!hasilPivot[row.submission_id]) {
+            hasilPivot[row.submission_id] = {
+              'ID Pengisian': row.submission_id,
+              'Tanggal Submit': row.tanggal_submit,
+              'Nama Surveyor': row.nama_surveyor,
+              'Tipe Responden': row.tipe_responden
+            };
+          }
+          hasilPivot[row.submission_id][row.teks_pertanyaan] = row.jawaban_teks;
+        });
+        const dataUntukCsv = Object.values(hasilPivot);
+        const fields = [
+          'ID Pengisian', 'Tanggal Submit', 'Nama Surveyor', 'Tipe Responden',
+          ...Array.from(semuaPertanyaan).sort()
+        ];
+        // setelah build dataUntukCsv dan fields...
+            const parser = new Parser({ fields });
+                let csvBody = parser.parse(dataUntukCsv);
+                csv = '\uFEFF' + csvBody;
+      }
+
+      // —– PERBAIKAN BAGIAN DOWNLOAD CSV —–
+      const fileName = `hasil_survei_event_${eventId}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        // filename*=encoding penuh untuk dukung UTF-8
+        `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
+      );
+      return res.send(csv);
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
+  }
 });
 
 // Menjalankan server
