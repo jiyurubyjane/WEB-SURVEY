@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logoAplikasi from '../assets/logo.jpg';
+import logoAplikasi from '../assets/logo.png';
 import backgroundAplikasi from '../assets/landingpage.png';
 
 function LandingPage() {
@@ -72,7 +72,7 @@ function LandingPage() {
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4 text-[#202262]">
             Sport Impact<br/>Smart Nation
           </h1>
-          <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-16 text-[#14BBF0]">
+          <p className="text-lg md:text-xl max-w-3xl mx-auto mb-16 text-[#14BBF0]">
             Platform survei untuk mengukur dampak ekonomi dari event olahraga.
           </p>
           <Link to="/login" className="bg-[#14BBF0] text-white font-bold py-3 px-8 rounded-md hover:bg-opacity-90 transition duration-300 shadow-lg">
