@@ -36,7 +36,7 @@ function DashboardAdmin() {
       <header className="flex justify-between items-center w-full mb-12 lg:mb-16">
         <button
           onClick={logout}
-          className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-colors shadow-md"
+          className="bg-[#14BBF0] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#0085CE] transition-colors shadow-md"
         >
           Logout
         </button>
@@ -77,10 +77,10 @@ function DashboardAdmin() {
         </div>
       </main>
 
-      <div className="absolute bottom-8 left-8 text-blue-600">
+      <div className="absolute bottom-8 left-8 text-[#202262]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-12 w-12"
+          className="h-14 w-14"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

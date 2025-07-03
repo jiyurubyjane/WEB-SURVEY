@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../context/AuthContext';
 
 function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
@@ -91,63 +91,104 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
 
   if (!isOpen) return null;
 
+  const inputClasses = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#14BBF0] focus:border-[#14BBF0]";
+  const selectClasses = `${inputClasses} appearance-none`;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-full overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">{isEditMode ? 'Edit Event' : 'Tambah Event Baru'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <input type="text" name="nama_event" value={formData.nama_event} onChange={handleInputChange} placeholder="Nama Event" className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
-          <textarea name="deskripsi" value={formData.deskripsi} onChange={handleInputChange} placeholder="Deskripsi Singkat Event" className="w-full px-3 py-2 border border-gray-300 rounded-md" rows="3"></textarea>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input type="text" name="lokasi" value={formData.lokasi} onChange={handleInputChange} placeholder="Lokasi" className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
-            <input type="number" name="jumlah_peserta" value={formData.jumlah_peserta} onChange={handleInputChange} placeholder="Estimasi Jumlah Peserta" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 transition-opacity duration-300">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-[#202262]">{isEditMode ? 'Edit Event' : 'Tambah Event Baru'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Event</label>
+            <input type="text" name="nama_event" value={formData.nama_event} onChange={handleInputChange} placeholder="Contoh: Pekan Olahraga Nasional" className={inputClasses} required />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+            <textarea name="deskripsi" value={formData.deskripsi} onChange={handleInputChange} placeholder="Deskripsi singkat mengenai event" className={inputClasses} rows="3"></textarea>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm text-gray-500">Tanggal Mulai</label>
-              <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+              <input type="text" name="lokasi" value={formData.lokasi} onChange={handleInputChange} placeholder="Contoh: Jakarta" className={inputClasses} required />
             </div>
             <div>
-              <label className="text-sm text-gray-500">Tanggal Selesai</label>
-              <input type="date" name="tanggal_selesai" value={formData.tanggal_selesai} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estimasi Jumlah Peserta</label>
+              <input type="number" name="jumlah_peserta" value={formData.jumlah_peserta} onChange={handleInputChange} placeholder="Contoh: 1000" className={inputClasses} />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai</label>
+              <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className={inputClasses} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+              <input type="date" name="tanggal_selesai" value={formData.tanggal_selesai} onChange={handleInputChange} className={inputClasses} required />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="relative">
-              <input type="text" value={kategoriQuery} onChange={(e) => setKategoriQuery(e.target.value)} placeholder="Ketik untuk cari Kategori Olahraga..." className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Olahraga</label>
+              <input type="text" value={kategoriQuery} onChange={(e) => setKategoriQuery(e.target.value)} placeholder="Ketik untuk cari..." className={inputClasses} />
               {kategoriOptions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto">
+                <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
                   {kategoriOptions.map(opt => (
-                    <li key={opt.id} onClick={() => { setFormData(prev => ({...prev, kategori_olahraga_id: opt.id})); setKategoriQuery(opt.nama_cabor); setKategoriOptions([]); }} className="px-3 py-2 hover:bg-gray-100 cursor-pointer">{opt.nama_cabor}</li>
+                    <li key={opt.id} onClick={() => { setFormData(prev => ({...prev, kategori_olahraga_id: opt.id})); setKategoriQuery(opt.nama_cabor); setKategoriOptions([]); }} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">{opt.nama_cabor}</li>
                   ))}
                 </ul>
               )}
             </div>
-            <select name="skala_event" value={formData.skala_event} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-md">
-              <option value="Lokal">Lokal</option>
-              <option value="Nasional">Nasional</option>
-              <option value="Internasional">Internasional</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm text-gray-500">Sponsor</label>
-            <div className="flex gap-2">
-              <input type="text" value={currentSponsor} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSponsor(); } }} onChange={(e) => setCurrentSponsor(e.target.value)} placeholder="Nama Sponsor" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-              <button type="button" onClick={handleAddSponsor} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 text-sm">Tambah</button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Skala Event</label>
+              <div className="relative">
+                <select name="skala_event" value={formData.skala_event} onChange={handleInputChange} className={selectClasses}>
+                  <option value="Lokal">Lokal</option>
+                  <option value="Nasional">Nasional</option>
+                  <option value="Internasional">Internasional</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
             </div>
-            <ul className="mt-2 space-y-1">
-              {formData.sponsors.map((sponsor, index) => (
-                <li key={index} className="flex justify-between items-center bg-gray-100 px-2 py-1 rounded-md text-sm">
-                  <span>{sponsor}</span>
-                  <button type="button" onClick={() => handleRemoveSponsor(sponsor)} className="text-red-500 hover:text-red-700 font-bold">×</button>
-                </li>
-              ))}
-            </ul>
           </div>
-          <div className="mt-6 flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Batal</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300">
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor</label>
+            <div className="flex gap-2">
+              <input type="text" value={currentSponsor} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSponsor(); } }} onChange={(e) => setCurrentSponsor(e.target.value)} placeholder="Ketik nama sponsor lalu tekan Enter atau Tambah" className={inputClasses} />
+              <button type="button" onClick={handleAddSponsor} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-semibold whitespace-nowrap">Tambah</button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {formData.sponsors.map((sponsor, index) => (
+                <div key={index} className="flex items-center bg-gray-100 text-gray-800 text-sm font-medium px-3 py-1 rounded-full">
+                  <span>{sponsor}</span>
+                  <button type="button" onClick={() => handleRemoveSponsor(sponsor)} className="ml-2 text-gray-500 hover:text-gray-700 font-bold">×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-6 flex justify-end gap-4 border-t border-gray-200">
+            <button type="button" onClick={onClose} className="font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 px-6 py-2.5 rounded-lg transition-colors">Batal</button>
+            <button type="submit" disabled={isSubmitting} className="font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-6 py-2.5 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
               {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Event' : 'Simpan Event')}
             </button>
           </div>

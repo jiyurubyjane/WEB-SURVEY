@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 
 // Komponen Layout
-import DashboardLayout from "./components/DashboardLayout.jsx"; // <-- PATH SUDAH DIPERBAIKI
+import DashboardLayout from "./components/DashboardLayout.jsx";
 
 // Halaman-halaman
 import LandingPage from "./pages/LandingPage.jsx";
@@ -30,7 +30,10 @@ function App() {
       <Route path="/dashboard-surveyor" element={<PrivateRoute allowedRoles={["Surveyor"]}><DashboardSurveyor /></PrivateRoute>} />
       <Route path="/dashboard-instansi" element={<PrivateRoute allowedRoles={["Instansi"]}><DashboardInstansi /></PrivateRoute>} />
       
-      {/* Grup Rute Admin dengan Layout */}
+      {/* Rute Homepage Admin (Tanpa Layout/Header) */}
+      <Route path="/dashboard-admin" element={<PrivateRoute allowedRoles={["Admin"]}><DashboardAdmin /></PrivateRoute>} />
+      
+      {/* Grup Rute Fitur dengan Layout/Header */}
       <Route 
         element={
           <PrivateRoute allowedRoles={["Admin", "Surveyor"]}>
@@ -38,7 +41,6 @@ function App() {
           </PrivateRoute>
         }
       >
-        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="/kelola-event" element={<KelolaEvent />} />
         <Route path="/kelola-pengguna" element={<KelolaPenggunaPage />} />
         <Route path="/input-survei" element={<InputSurveyPage />} />
