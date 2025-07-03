@@ -4,16 +4,16 @@ const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const jwt = require("jsonwebtoken");
-const { Parser } = require('json2csv');
+const ExcelJS = require('exceljs');
 
 const app = express();
-const port = 3001; 
+const port = 3001;
 const JWT_SECRET = "kunci-rahasia-jwt-yang-super-aman-dan-panjang";
 
-app.use(cors({ 
-    origin: "http://localhost:5173", 
+app.use(cors({
+    origin: "http://localhost:5173",
     credentials: true,
-    exposedHeaders: ['Content-Disposition'] 
+    exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json());
 
@@ -261,7 +261,7 @@ app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
             });
         }
     } catch (error) {
-         res.status(500).json({ message: "Terjadi kesalahan pada server." });
+       res.status(500).json({ message: "Terjadi kesalahan pada server." });
     }
 });
 
@@ -280,7 +280,7 @@ app.delete("/users/:id", verifyToken, isAdmin, (req, res) => {
 });
 
 // =================================================================
-// === ENDPOINT SUBMIT SURVEI (VERSI FINAL v3) ===
+// === ENDPOINT SUBMIT SURVEI ===
 // =================================================================
 app.post("/jawaban", verifyToken, (req, res) => {
     const { kuesionerId, jawaban } = req.body;
@@ -302,8 +302,6 @@ app.post("/jawaban", verifyToken, (req, res) => {
                 }
 
                 const submissionId = this.lastID;
-
-                // PERBAIKAN: Menambahkan kolom 'session_id' ke dalam query INSERT
                 const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, submission_id, session_id) VALUES (?, ?, ?, ?)`;
                 const stmt = db.prepare(sqlJawaban, (err) => {
                     if (err) {
@@ -316,7 +314,6 @@ app.post("/jawaban", verifyToken, (req, res) => {
                 let errorOccurred = false;
 
                 jawaban.forEach(j => {
-                    // PERBAIKAN: Menambahkan 'submissionId' sebagai nilai untuk session_id
                     stmt.run(j.jawaban_teks, j.pertanyaan_id, submissionId, submissionId, function(err) {
                         if (err) {
                             if (!errorOccurred) {
@@ -361,12 +358,13 @@ app.post("/jawaban", verifyToken, (req, res) => {
 
 
 // =================================================================
-// === ENDPOINT DOWNLOAD (DENGAN FORMAT EXCEL/PIVOT) ===
+// === ENDPOINT DOWNLOAD (VERSI BARU DENGAN SHEET TERPISAH) ===
 // =================================================================
-app.get("/events/:eventId/hasil-survei/download", verifyToken, (req, res) => {
+app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) => {
   try {
     const { eventId } = req.params;
 
+    // 1. Ambil data survei seperti sebelumnya
     const query = `
       SELECT
         s.id AS submission_id,
@@ -381,63 +379,68 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, (req, res) => {
       JOIN pertanyaan p ON j.pertanyaan_id = p.id
       JOIN kuesioner k ON p.kuesioner_id = k.id
       WHERE k.event_id = ?
-      ORDER BY s.id, p.urutan;
+      ORDER BY k.tipe_responden, s.id, p.urutan;
     `;
 
-    db.all(query, [eventId], (err, rows) => {
-      if (err) {
-        return res.status(500).json({
-          message: "Gagal mengambil data dari database.",
-          error: err.message
-        });
-      }
+    db.all(query, [eventId], async (err, rows) => {
+      if (err) return res.status(500).json({ message: "DB error", error: err.message });
+      if (!rows.length) return res.status(404).json({ message: "Tidak ada data survei." });
 
-      let csv;
-      if (rows.length === 0) {
-        const parser = new Parser({ fields: ['Pesan'] });
-        csv = parser.parse([{ Pesan: 'Tidak ada data survei untuk event ini.' }]);
-      } else {
-        // Buat pivot dan parse CSV
-        const hasilPivot = {};
-        const semuaPertanyaan = new Set();
-        rows.forEach(row => {
-          semuaPertanyaan.add(row.teks_pertanyaan);
-          if (!hasilPivot[row.submission_id]) {
-            hasilPivot[row.submission_id] = {
-              'ID Pengisian': row.submission_id,
-              'Tanggal Submit': row.tanggal_submit,
-              'Nama Surveyor': row.nama_surveyor,
-              'Tipe Responden': row.tipe_responden
+      // 2. Buat workbook dan sheet per tipe responden
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "Survey App";
+      workbook.created = new Date();
+
+      // Group data
+      const byType = rows.reduce((acc, r) => {
+        acc[r.tipe_responden] = acc[r.tipe_responden] || [];
+        acc[r.tipe_responden].push(r);
+        return acc;
+      }, {});
+
+      for (const tipe of Object.keys(byType)) {
+        const data = byType[tipe];
+        const safeName = tipe.replace(/[\\\/*?\[\]]/g, "_").slice(0, 31);
+        const sheet = workbook.addWorksheet(safeName);
+
+        // Pivot untuk header dinamis
+        const pivot = {}, questions = new Set();
+        data.forEach(r => {
+          questions.add(r.teks_pertanyaan);
+          if (!pivot[r.submission_id]) {
+            pivot[r.submission_id] = {
+              "ID Pengisian": r.submission_id,
+              "Tanggal Submit": r.tanggal_submit,
+              "Nama Surveyor": r.nama_surveyor
             };
           }
-          hasilPivot[row.submission_id][row.teks_pertanyaan] = row.jawaban_teks;
+          pivot[r.submission_id][r.teks_pertanyaan] = r.jawaban_teks;
         });
-        const dataUntukCsv = Object.values(hasilPivot);
-        const fields = [
-          'ID Pengisian', 'Tanggal Submit', 'Nama Surveyor', 'Tipe Responden',
-          ...Array.from(semuaPertanyaan).sort()
-        ];
-       // setelah build dataUntukCsv dan fields...
-        const parser = new Parser({ fields });
-        let csvBody = parser.parse(dataUntukCsv);
-        csv = '\uFEFF' + csvBody;
 
+        const headers = ["ID Pengisian","Tanggal Submit","Nama Surveyor", ...Array.from(questions)];
+        sheet.columns = headers.map(h => ({ header: h, key: h, width: 25 }));
+        Object.values(pivot).forEach(row => sheet.addRow(row));
       }
 
-      // —– PERBAIKAN BAGIAN DOWNLOAD CSV —–
-      const fileName = `hasil_survei_event_${eventId}.csv`;
+      // 3. Kirim respons XLSX
+      // … setelah pivoting data …
+    const fileName = `hasil_survei_event_${eventId}.xlsx`;
 
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader(
-        'Content-Disposition',
-        // filename*=encoding penuh untuk dukung UTF-8
-        `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
-      );
-      return res.send(csv);
+    res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
+    );
+
+await workbook.xlsx.write(res);
+res.end();
+
     });
-
-  } catch (error) {
-    res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
+  } catch (e) {
+    res.status(500).json({ message: "Server error", error: e.message });
   }
 });
 

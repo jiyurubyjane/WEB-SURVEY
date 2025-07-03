@@ -97,32 +97,29 @@ function KelolaEvent() {
   // === FUNGSI BARU: Untuk menangani klik tombol download ===
   // =================================================================
   const handleDownload = async (eventId) => {
-    Swal.fire({
-      title: 'Mempersiapkan Unduhan',
-      text: 'Harap tunggu sebentar...',
-      icon: 'info',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
-    });
+     Swal.fire({
+       title: 'Mempersiapkan Unduhan',
+       text: 'Harap tunggu sebentar...',
+       icon: 'info',
+       allowOutsideClick: false,
+       didOpen: () => Swal.showLoading()
+     });
 
-    try {
-      // Menggunakan apiFetch yang sudah ada untuk otentikasi
-      // Pastikan URL ini sesuai dengan endpoint di backend Anda
-      const res = await apiFetch(`/api/events/${eventId}/hasil-survei/download`);
+     try {
+       const res = await apiFetch(`/api/events/${eventId}/hasil-survei/download`);
 
-      if (res.status === 404) {
-        throw new Error('Tidak ada data survei yang ditemukan untuk event ini.');
-      }
-      if (!res.ok) {
-        // Mencoba membaca pesan error dari server jika ada
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || 'Gagal mengunduh file. Terjadi kesalahan di server.');
-      }
+       if (res.status === 404) {
+         throw new Error('Tidak ada data survei yang ditemukan untuk event ini.');
+       }
+       if (!res.ok) {
+         const errorData = await res.json().catch(() => null);
+         throw new Error(errorData?.message || 'Gagal mengunduh file. Terjadi kesalahan di server.');
+       }
 
       const contentDisposition = res.headers.get('content-disposition');
-      let filename = `hasil-survei-event-${eventId}.csv`;
+      let filename = `hasil-survei-event-${eventId}.xlsx`;
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        const filenameMatch = contentDisposition.match(/filename\*?="?([^"]+)"?/i);
         if (filenameMatch && filenameMatch.length > 1) {
           filename = filenameMatch[1];
         }
