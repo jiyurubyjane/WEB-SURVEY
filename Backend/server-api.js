@@ -199,12 +199,15 @@ app.delete("/pertanyaan/:id", verifyToken, isAdmin, (req, res) => {
     });
 });
 
-// Hanya Admin yang bisa mengakses daftar pengguna
+// =================================================================
+// === API UNTUK MANAJEMEN PENGGUNA (CRUD) ===
+// =================================================================
+
+// GET: Mengambil semua pengguna
 app.get("/users", verifyToken, isAdmin, (req, res) => {
     const sql = "SELECT id, nama, email, peran FROM users ORDER BY nama ASC";
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error("Error fetching users:", err.message);
             return res.status(500).json({ error: "Gagal mengambil data pengguna." });
         }
         res.json(rows);
@@ -222,7 +225,6 @@ app.post("/users", verifyToken, isAdmin, async (req, res) => {
         const sql = "INSERT INTO users (nama, email, password_hash, peran) VALUES (?, ?, ?, ?)";
         db.run(sql, [nama, email, hashedPassword, peran], function(err) {
             if (err) {
-                // Error jika email sudah ada
                 if (err.message.includes("UNIQUE constraint failed")) {
                     return res.status(409).json({ message: "Email sudah terdaftar." });
                 }
@@ -245,7 +247,6 @@ app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
 
     try {
         if (password) {
-            // Jika ada password baru, update semuanya termasuk password
             const hashedPassword = await bcrypt.hash(password, 10);
             const sql = "UPDATE users SET nama = ?, email = ?, peran = ?, password_hash = ? WHERE id = ?";
             db.run(sql, [nama, email, peran, hashedPassword, id], function(err) {
@@ -253,7 +254,6 @@ app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
                 res.json({ message: "Pengguna berhasil diperbarui (dengan password baru)." });
             });
         } else {
-            // Jika tidak ada password baru, update selain password
             const sql = "UPDATE users SET nama = ?, email = ?, peran = ? WHERE id = ?";
             db.run(sql, [nama, email, peran, id], function(err) {
                 if (err) return res.status(500).json({ message: "Gagal update pengguna.", error: err.message });
@@ -268,7 +268,6 @@ app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
 // DELETE: Menghapus pengguna
 app.delete("/users/:id", verifyToken, isAdmin, (req, res) => {
     const { id } = req.params;
-    // Mencegah admin menghapus dirinya sendiri
     if (parseInt(id, 10) === req.user.id) {
         return res.status(403).json({ message: "Anda tidak bisa menghapus akun Anda sendiri." });
     }
