@@ -199,6 +199,87 @@ app.delete("/pertanyaan/:id", verifyToken, isAdmin, (req, res) => {
     });
 });
 
+// Hanya Admin yang bisa mengakses daftar pengguna
+app.get("/users", verifyToken, isAdmin, (req, res) => {
+    const sql = "SELECT id, nama, email, peran FROM users ORDER BY nama ASC";
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error("Error fetching users:", err.message);
+            return res.status(500).json({ error: "Gagal mengambil data pengguna." });
+        }
+        res.json(rows);
+    });
+});
+
+// POST: Menambah pengguna baru
+app.post("/users", verifyToken, isAdmin, async (req, res) => {
+    const { nama, email, password, peran } = req.body;
+    if (!nama || !email || !password || !peran) {
+        return res.status(400).json({ message: "Semua field wajib diisi." });
+    }
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const sql = "INSERT INTO users (nama, email, password_hash, peran) VALUES (?, ?, ?, ?)";
+        db.run(sql, [nama, email, hashedPassword, peran], function(err) {
+            if (err) {
+                // Error jika email sudah ada
+                if (err.message.includes("UNIQUE constraint failed")) {
+                    return res.status(409).json({ message: "Email sudah terdaftar." });
+                }
+                return res.status(500).json({ message: "Gagal menyimpan pengguna ke database.", error: err.message });
+            }
+            res.status(201).json({ message: "Pengguna berhasil ditambahkan.", userId: this.lastID });
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    }
+});
+
+// PUT: Mengedit pengguna
+app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nama, email, peran, password } = req.body;
+     if (!nama || !email || !peran) {
+        return res.status(400).json({ message: "Nama, email, dan peran wajib diisi." });
+    }
+
+    try {
+        if (password) {
+            // Jika ada password baru, update semuanya termasuk password
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const sql = "UPDATE users SET nama = ?, email = ?, peran = ?, password_hash = ? WHERE id = ?";
+            db.run(sql, [nama, email, peran, hashedPassword, id], function(err) {
+                if (err) return res.status(500).json({ message: "Gagal update pengguna.", error: err.message });
+                res.json({ message: "Pengguna berhasil diperbarui (dengan password baru)." });
+            });
+        } else {
+            // Jika tidak ada password baru, update selain password
+            const sql = "UPDATE users SET nama = ?, email = ?, peran = ? WHERE id = ?";
+            db.run(sql, [nama, email, peran, id], function(err) {
+                if (err) return res.status(500).json({ message: "Gagal update pengguna.", error: err.message });
+                res.json({ message: "Pengguna berhasil diperbarui." });
+            });
+        }
+    } catch (error) {
+         res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    }
+});
+
+// DELETE: Menghapus pengguna
+app.delete("/users/:id", verifyToken, isAdmin, (req, res) => {
+    const { id } = req.params;
+    // Mencegah admin menghapus dirinya sendiri
+    if (parseInt(id, 10) === req.user.id) {
+        return res.status(403).json({ message: "Anda tidak bisa menghapus akun Anda sendiri." });
+    }
+    const sql = "DELETE FROM users WHERE id = ?";
+    db.run(sql, id, function(err) {
+        if (err) return res.status(500).json({ message: "Gagal menghapus pengguna.", error: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Pengguna tidak ditemukan." });
+        res.json({ message: "Pengguna berhasil dihapus." });
+    });
+});
+
 // =================================================================
 // === ENDPOINT SUBMIT SURVEI (VERSI FINAL v3) ===
 // =================================================================
