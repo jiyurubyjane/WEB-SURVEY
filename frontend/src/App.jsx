@@ -1,4 +1,9 @@
 import { Routes, Route } from "react-router-dom";
+
+// Komponen Layout
+import DashboardLayout from "./components/DashboardLayout.jsx"; // <-- PATH SUDAH DIPERBAIKI
+
+// Halaman-halaman
 import LandingPage from "./pages/LandingPage.jsx";
 import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
@@ -21,19 +26,25 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Rute yang Dilindungi */}
-      <Route path="/dashboard-admin" element={<PrivateRoute allowedRoles={["Admin"]}><DashboardAdmin /></PrivateRoute>} />
+      {/* Rute Dashboard Lain (Tidak Memakai Layout) */}
       <Route path="/dashboard-surveyor" element={<PrivateRoute allowedRoles={["Surveyor"]}><DashboardSurveyor /></PrivateRoute>} />
       <Route path="/dashboard-instansi" element={<PrivateRoute allowedRoles={["Instansi"]}><DashboardInstansi /></PrivateRoute>} />
       
-      <Route path="/kelola-event" element={<PrivateRoute allowedRoles={["Admin"]}><KelolaEvent /></PrivateRoute>} />
-      
-      {/* Rute baru untuk Kelola Pengguna */}
-      <Route path="/kelola-pengguna" element={<PrivateRoute allowedRoles={["Admin"]}><KelolaPenggunaPage /></PrivateRoute>} />
-      
-      <Route path="/input-survei" element={<PrivateRoute allowedRoles={["Admin", "Surveyor"]}><InputSurveyPage /></PrivateRoute>} />
+      {/* Grup Rute Admin dengan Layout */}
+      <Route 
+        element={
+          <PrivateRoute allowedRoles={["Admin", "Surveyor"]}>
+            <DashboardLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
+        <Route path="/kelola-event" element={<KelolaEvent />} />
+        <Route path="/kelola-pengguna" element={<KelolaPenggunaPage />} />
+        <Route path="/input-survei" element={<InputSurveyPage />} />
+      </Route>
 
-      {/* Rute "Catch-all" untuk Halaman Tidak Ditemukan */}
+      {/* Rute "Catch-all" */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
