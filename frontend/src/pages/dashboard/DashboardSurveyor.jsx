@@ -33,7 +33,12 @@ function DashboardSurveyor() {
             <img src={logo} alt="Logo" className="h-14 w-auto" />
           </div>
 
-          <div className="flex-1 flex justify-end">
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Link to="/profile" className="text-white hover:text-gray-200">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Link>
             <h2 className="hidden sm:block text-sm font-bold tracking-widest uppercase" style={{ color: 'white' }}>
               HOME PAGE
             </h2>

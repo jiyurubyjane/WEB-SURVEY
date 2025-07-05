@@ -46,7 +46,6 @@ app.post("/login", async (req, res) => {
         const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const user = result.rows[0];
         if (!user) return res.status(401).json({ message: "Email atau password salah" });
-
         const match = await bcrypt.compare(password, user.password_hash);
         if (match) {
             const userPayload = { id: user.id, nama: user.nama, email: user.email, peran: user.peran };
@@ -63,6 +62,69 @@ app.post("/login", async (req, res) => {
 
 app.get("/me", verifyToken, (req, res) => res.json(req.user));
 
+app.put("/me", verifyToken, async (req, res) => {
+    const { nama, email } = req.body;
+    const userId = req.user.id;
+    try {
+        const result = await pool.query("UPDATE users SET nama = $1, email = $2 WHERE id = $3 RETURNING id, nama, email, peran", [nama, email, userId]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Update Profile Error:", err);
+        res.status(500).json({ error: "Gagal memperbarui profil." });
+    }
+});
+
+app.put("/me/password", verifyToken, async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Password lama dan baru wajib diisi." });
+    }
+    try {
+        const result = await pool.query("SELECT password_hash FROM users WHERE id = $1", [userId]);
+        const user = result.rows[0];
+        if (!user) return res.status(404).json({ message: "Pengguna tidak ditemukan." });
+        const match = await bcrypt.compare(oldPassword, user.password_hash);
+        if (!match) return res.status(403).json({ message: "Password lama salah." });
+        const newHashedPassword = await bcrypt.hash(newPassword, 10);
+        await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [newHashedPassword, userId]);
+        res.json({ message: "Password berhasil diperbarui." });
+    } catch (err) {
+        console.error("Change Password Error:", err);
+        res.status(500).json({ error: "Gagal memperbarui password." });
+    }
+});
+
+app.get("/me/stats", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.peran;
+        let stats = {};
+
+        if (userRole === 'Admin') {
+            const totalUsersRes = await pool.query("SELECT COUNT(*) FROM users");
+            const totalEventsRes = await pool.query("SELECT COUNT(*) FROM events WHERE status = 'aktif'");
+            const totalSurveysRes = await pool.query("SELECT COUNT(*) FROM survey_sessions");
+            stats = {
+                total_pengguna: parseInt(totalUsersRes.rows[0].count, 10),
+                total_event_aktif: parseInt(totalEventsRes.rows[0].count, 10),
+                total_data_survei: parseInt(totalSurveysRes.rows[0].count, 10)
+            };
+        } else if (userRole === 'Surveyor') {
+            const totalSurveiRes = await pool.query("SELECT COUNT(*) AS total_survei FROM survey_sessions WHERE surveyor_id = $1", [userId]);
+            const totalEventRes = await pool.query("SELECT COUNT(DISTINCT kuesioner.event_id) AS total_event FROM survey_sessions JOIN kuesioner ON survey_sessions.kuesioner_id = kuesioner.id WHERE survey_sessions.surveyor_id = $1", [userId]);
+            stats = {
+                total_survei: parseInt(totalSurveiRes.rows[0].total_survei, 10) || 0,
+                total_event: parseInt(totalEventRes.rows[0].total_event, 10) || 0
+            };
+        }
+        res.json(stats);
+    } catch (err) {
+        console.error("Get Stats Error:", err);
+        res.status(500).json({ error: "Gagal mengambil data statistik." });
+    }
+});
+
 app.get("/users", verifyToken, isAdmin, async (req, res) => {
     try {
         const result = await pool.query("SELECT id, nama, email, peran FROM users ORDER BY nama ASC");
@@ -75,51 +137,40 @@ app.get("/users", verifyToken, isAdmin, async (req, res) => {
 
 app.post("/users", verifyToken, isAdmin, async (req, res) => {
     const { nama, email, password, peran } = req.body;
-    if (!nama || !email || !password || !peran) {
-        return res.status(400).json({ message: "Semua field wajib diisi." });
-    }
+    if (!nama || !email || !password || !peran) return res.status(400).json({ message: "Semua field wajib diisi." });
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const sql = "INSERT INTO users (nama, email, password_hash, peran) VALUES ($1, $2, $3, $4) RETURNING id";
-        const result = await pool.query(sql, [nama, email, hashedPassword, peran]);
+        const result = await pool.query("INSERT INTO users (nama, email, password_hash, peran) VALUES ($1, $2, $3, $4) RETURNING id", [nama, email, hashedPassword, peran]);
         res.status(201).json({ message: "Pengguna berhasil ditambahkan.", userId: result.rows[0].id });
     } catch (error) {
-        if (error.code === '23505') { // Unique violation
-            return res.status(409).json({ message: "Email sudah terdaftar." });
-        }
+        if (error.code === '23505') return res.status(409).json({ message: "Email sudah terdaftar." });
         console.error("Create User Error:", error);
-        res.status(500).json({ message: "Gagal menyimpan pengguna ke database." });
+        res.status(500).json({ message: "Gagal menyimpan pengguna." });
     }
 });
 
 app.put("/users/:id", verifyToken, isAdmin, async (req, res) => {
     const { id } = req.params;
     const { nama, email, peran, password } = req.body;
-     if (!nama || !email || !peran) {
-        return res.status(400).json({ message: "Nama, email, dan peran wajib diisi." });
-    }
+    if (!nama || !email || !peran) return res.status(400).json({ message: "Nama, email, dan peran wajib diisi." });
     try {
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const sql = "UPDATE users SET nama = $1, email = $2, peran = $3, password_hash = $4 WHERE id = $5";
-            await pool.query(sql, [nama, email, peran, hashedPassword, id]);
-            res.json({ message: "Pengguna berhasil diperbarui (dengan password baru)." });
+            await pool.query("UPDATE users SET nama = $1, email = $2, peran = $3, password_hash = $4 WHERE id = $5", [nama, email, peran, hashedPassword, id]);
+            res.json({ message: "Pengguna diperbarui (dengan password baru)." });
         } else {
-            const sql = "UPDATE users SET nama = $1, email = $2, peran = $3 WHERE id = $4";
-            await pool.query(sql, [nama, email, peran, id]);
+            await pool.query("UPDATE users SET nama = $1, email = $2, peran = $3 WHERE id = $4", [nama, email, peran, id]);
             res.json({ message: "Pengguna berhasil diperbarui." });
         }
     } catch (error) {
         console.error("Update User Error:", error);
-       res.status(500).json({ message: "Gagal update pengguna." });
+        res.status(500).json({ message: "Gagal update pengguna." });
     }
 });
 
 app.delete("/users/:id", verifyToken, isAdmin, async (req, res) => {
     const { id } = req.params;
-    if (parseInt(id, 10) === req.user.id) {
-        return res.status(403).json({ message: "Anda tidak bisa menghapus akun Anda sendiri." });
-    }
+    if (parseInt(id, 10) === req.user.id) return res.status(403).json({ message: "Anda tidak bisa menghapus akun Anda sendiri." });
     try {
         const result = await pool.query("DELETE FROM users WHERE id = $1", [id]);
         if (result.rowCount === 0) return res.status(404).json({ message: "Pengguna tidak ditemukan." });
@@ -160,7 +211,6 @@ app.post("/events", verifyToken, isAdmin, async (req, res) => {
         const sqlEvent = 'INSERT INTO events (nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id';
         const eventResult = await client.query(sqlEvent, [nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, 'aktif']);
         const eventId = eventResult.rows[0].id;
-
         if (sponsors.length > 0) {
             const sqlSponsor = 'INSERT INTO sponsors (event_id, nama_sponsor) VALUES ($1, $2)';
             for (const nama of sponsors) {
@@ -184,7 +234,6 @@ app.get("/events/:id", verifyToken, async (req, res) => {
         const eventResult = await pool.query(sqlEvent, [req.params.id]);
         const event = eventResult.rows[0];
         if (!event) return res.status(404).json({ error: "Event tidak ditemukan." });
-
         const sqlSponsors = `SELECT nama_sponsor FROM sponsors WHERE event_id = $1`;
         const sponsorsResult = await pool.query(sqlSponsors, [req.params.id]);
         event.sponsors = sponsorsResult.rows.map(s => s.nama_sponsor);
@@ -202,9 +251,7 @@ app.put("/events/:id", verifyToken, isAdmin, async (req, res) => {
         await client.query('BEGIN');
         const sqlEvent = `UPDATE events SET nama_event = $1, lokasi = $2, tanggal_mulai = $3, tanggal_selesai = $4, deskripsi = $5, jumlah_peserta = $6, skala_event = $7, kategori_olahraga_id = $8 WHERE id = $9`;
         await client.query(sqlEvent, [nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, req.params.id]);
-        
         await client.query('DELETE FROM sponsors WHERE event_id = $1', [req.params.id]);
-        
         if (sponsors.length > 0) {
             const sqlSponsor = 'INSERT INTO sponsors (event_id, nama_sponsor) VALUES ($1, $2)';
             for (const nama of sponsors) {
@@ -219,6 +266,17 @@ app.put("/events/:id", verifyToken, isAdmin, async (req, res) => {
         res.status(500).json({ error: err.message });
     } finally {
         client.release();
+    }
+});
+
+app.delete("/events/:id", verifyToken, isAdmin, async (req, res) => {
+    try {
+        const result = await pool.query("DELETE FROM events WHERE id = $1", [req.params.id]);
+        if (result.rowCount === 0) return res.status(404).json({ message: "Event tidak ditemukan." });
+        res.json({ message: "Event berhasil dihapus." });
+    } catch (err) {
+        console.error("Delete Event Error:", err);
+        res.status(500).json({ message: "Gagal menghapus event." });
     }
 });
 
@@ -290,12 +348,11 @@ app.post("/jawaban", verifyToken, async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const submissionResult = await client.query("INSERT INTO submissions (kuesioner_id, surveyor_id) VALUES ($1, $2) RETURNING id", [kuesionerId, surveyorId]);
+        const submissionResult = await client.query("INSERT INTO survey_sessions (kuesioner_id, surveyor_id) VALUES ($1, $2) RETURNING id", [kuesionerId, surveyorId]);
         const submissionId = submissionResult.rows[0].id;
-
-        const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, submission_id) VALUES ($1, $2, $3)`;
+        const sqlJawaban = `INSERT INTO jawaban (isi_jawaban, pertanyaan_id, session_id) VALUES ($1, $2, $3)`;
         for (const j of jawaban) {
-            await client.query(sqlJawaban, [j.jawaban_teks, j.pertanyaan_id, submissionId]);
+            await client.query(sqlJawaban, [j.isi_jawaban, j.pertanyaan_id, submissionId]);
         }
         await client.query('COMMIT');
         res.status(201).json({ message: "Survei berhasil disubmit!" });
@@ -311,25 +368,20 @@ app.post("/jawaban", verifyToken, async (req, res) => {
 app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const query = `SELECT s.id AS submission_id, s.created_at AS tanggal_submit, u.nama AS nama_surveyor, k.tipe_responden, p.teks_pertanyaan, j.isi_jawaban AS jawaban_teks FROM jawaban j JOIN submissions s ON j.submission_id = s.id JOIN users u ON s.surveyor_id = u.id JOIN pertanyaan p ON j.pertanyaan_id = p.id JOIN kuesioner k ON p.kuesioner_id = k.id WHERE k.event_id = $1 ORDER BY k.tipe_responden, s.id, p.urutan;`;
-        
+        const query = `SELECT s.id AS submission_id, s.created_at AS tanggal_submit, u.nama AS nama_surveyor, k.tipe_responden, p.teks_pertanyaan, j.isi_jawaban FROM jawaban j JOIN survey_sessions s ON j.session_id = s.id JOIN users u ON s.surveyor_id = u.id JOIN pertanyaan p ON j.pertanyaan_id = p.id JOIN kuesioner k ON p.kuesioner_id = k.id WHERE k.event_id = $1 ORDER BY k.tipe_responden, s.id, p.urutan;`;
         const result = await pool.query(query, [eventId]);
         const rows = result.rows;
-
         if (!rows.length) return res.status(404).send('Tidak ada data survei untuk diunduh.');
-
         const workbook = new ExcelJS.Workbook();
         const byType = rows.reduce((acc, r) => {
             acc[r.tipe_responden] = acc[r.tipe_responden] || [];
             acc[r.tipe_responden].push(r);
             return acc;
         }, {});
-
         for (const tipe of Object.keys(byType)) {
             const data = byType[tipe];
             const safeName = tipe.replace(/[\\\/*?\[\]]/g, "_").slice(0, 31);
             const sheet = workbook.addWorksheet(safeName);
-
             const pivot = {};
             const questions = new Set();
             data.forEach(r => {
@@ -337,20 +389,17 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) 
                 if (!pivot[r.submission_id]) {
                     pivot[r.submission_id] = { "ID Pengisian": r.submission_id, "Tanggal Submit": r.tanggal_submit, "Nama Surveyor": r.nama_surveyor };
                 }
-                pivot[r.submission_id][r.teks_pertanyaan] = r.jawaban_teks;
+                pivot[r.submission_id][r.teks_pertanyaan] = r.isi_jawaban;
             });
-
             const headers = ["ID Pengisian", "Tanggal Submit", "Nama Surveyor", ...Array.from(questions).sort()];
             sheet.columns = headers.map(h => ({ header: h, key: h, width: 25 }));
             Object.values(pivot).forEach(row => sheet.addRow(row));
         }
-        
         const fileName = `hasil_survei_event_${eventId}.xlsx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         await workbook.xlsx.write(res);
         res.end();
-
     } catch (e) {
         console.error("Download Error:", e);
         res.status(500).json({ message: "Server error", error: e.message });

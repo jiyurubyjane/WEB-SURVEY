@@ -15,45 +15,76 @@ function DashboardLayout() {
     return `${baseClasses} text-gray-600 hover:bg-gray-200 hover:text-gray-900`;
   };
 
+  const getMobileNavLinkClass = ({ isActive }) => {
+    return `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-[#14BBF0] text-white' : 'text-gray-700 hover:bg-gray-100'}`;
+  };
+
   const AdminNav = () => (
     <>
-      <NavLink to="/kelola-pengguna" className={getNavLinkClass}>
-        Kelola Pengguna
-      </NavLink>
-      <NavLink to="/kelola-event" className={getNavLinkClass}>
-        Kelola Event
-      </NavLink>
-      <NavLink to="/input-survei" className={getNavLinkClass}>
-        Input Survei
-      </NavLink>
+      <NavLink to="/kelola-pengguna" className={getNavLinkClass}>Kelola Pengguna</NavLink>
+      <NavLink to="/kelola-event" className={getNavLinkClass}>Kelola Event</NavLink>
+      <NavLink to="/input-survei" className={getNavLinkClass}>Input Survei</NavLink>
     </>
   );
 
   const SurveyorNav = () => (
-    <NavLink to="/input-survei" className={getNavLinkClass}>
-      Input Survei
-    </NavLink>
+    <NavLink to="/input-survei" className={getNavLinkClass}>Input Survei</NavLink>
+  );
+  
+  const InstansiNav = () => (
+    <NavLink to="/hasil-analisis" className={getNavLinkClass}>Hasil Analisis</NavLink>
   );
 
-  const AdminNavMobile = () => (
-    <>
-      <NavLink to="/kelola-pengguna" className={({isActive}) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-[#14BBF0] text-white' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setIsMenuOpen(false)}>
-        Kelola Pengguna
-      </NavLink>
-      <NavLink to="/kelola-event" className={({isActive}) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-[#14BBF0] text-white' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setIsMenuOpen(false)}>
-        Kelola Event
-      </NavLink>
-      <NavLink to="/input-survei" className={({isActive}) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-[#14BBF0] text-white' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setIsMenuOpen(false)}>
-        Input Survei
-      </NavLink>
-    </>
-  );
+  const renderNavLinks = () => {
+    switch (user?.peran) {
+      case 'Admin': return <AdminNav />;
+      case 'Surveyor': return <SurveyorNav />;
+      case 'Instansi': return <InstansiNav />;
+      default: return null;
+    }
+  };
+  
+  const renderMobileNavLinks = () => {
+    const closeMenu = () => setIsMenuOpen(false);
+    
+    const navs = {
+      Admin: [
+        { path: "/kelola-pengguna", label: "Kelola Pengguna" },
+        { path: "/kelola-event", label: "Kelola Event" },
+        { path: "/input-survei", label: "Input Survei" },
+      ],
+      Surveyor: [
+        { path: "/input-survei", label: "Input Survei" },
+      ],
+      Instansi: [
+         { path: "/hasil-analisis", label: "Hasil Analisis" },
+      ]
+    };
+    
+    const links = navs[user?.peran] || [];
 
-  const SurveyorNavMobile = () => (
-     <NavLink to="/input-survei" className={({isActive}) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-[#14BBF0] text-white' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setIsMenuOpen(false)}>
-      Input Survei
-    </NavLink>
-  );
+    return (
+      <>
+        {links.map(link => (
+          <NavLink key={link.path} to={link.path} className={getMobileNavLinkClass} onClick={closeMenu}>
+            {link.label}
+          </NavLink>
+        ))}
+        <NavLink to="/profil" className={getMobileNavLinkClass} onClick={closeMenu}>
+          Profil Saya
+        </NavLink>
+      </>
+    );
+  };
+
+  const getDashboardHomePath = () => {
+    switch (user?.peran) {
+      case 'Admin': return '/dashboard-admin';
+      case 'Surveyor': return '/dashboard-surveyor';
+      case 'Instansi': return '/dashboard-instansi';
+      default: return '/';
+    }
+  };
 
   return (
     <div className="bg-[#F8F9FA] min-h-screen font-sans">
@@ -61,17 +92,21 @@ function DashboardLayout() {
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
-              <NavLink to={user?.peran === 'Admin' ? '/dashboard-admin' : '/dashboard-surveyor'} className="text-gray-500 hover:text-gray-900" title="Kembali ke Home">
+              <NavLink to={getDashboardHomePath()} className="text-gray-500 hover:text-gray-900" title="Kembali ke Home">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
+              </NavLink>
+              <NavLink to="/profil" title="Profil Saya">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-base font-bold shadow-sm">
+                  {user?.nama.charAt(0).toUpperCase()}
+                </div>
               </NavLink>
               <img src={logo} alt="Logo" className="h-8 w-auto" />
             </div>
             
             <nav className="hidden md:flex items-center gap-2">
-              {user?.peran === 'Admin' && <AdminNav />}
-              {user?.peran === 'Surveyor' && <SurveyorNav />}
+              {renderNavLinks()}
             </nav>
 
             <div className="md:hidden flex items-center">
@@ -91,8 +126,7 @@ function DashboardLayout() {
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-200">
             <nav className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {user?.peran === 'Admin' && <AdminNavMobile />}
-              {user?.peran === 'Surveyor' && <SurveyorNavMobile />}
+              {renderMobileNavLinks()}
             </nav>
           </div>
         )}

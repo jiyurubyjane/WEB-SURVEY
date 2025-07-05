@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Swal from 'sweetalert2';
 import logoAplikasi from '../assets/logo.png';
 import loginBackground from '../assets/login.png';
 
@@ -33,6 +34,16 @@ function Login() {
     login(email, password);
   };
 
+  const handleForgotPassword = () => {
+    Swal.fire({
+      title: 'Lupa Password?',
+      text: 'Silakan hubungi administrator sistem untuk bantuan reset password Anda.',
+      icon: 'info',
+      confirmButtonText: 'Mengerti',
+      confirmButtonColor: '#3085d6',
+    });
+  };
+
   if (user) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100">
@@ -43,10 +54,10 @@ function Login() {
 
   return (
     <div 
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center px-4"
+      className="min-h-screen flex items-center justify-center bg-cover bg-center px-4"
       style={{ backgroundImage: `url(${loginBackground})` }}
     >
-      <Link to="/" className="absolute top-6 left-6 text-white bg-black bg-opacity-20 rounded-full p-2 hover:bg-opacity-40 transition-colors duration-200">
+      <Link to="/" className="absolute top-6 left-6 text-white bg-black bg-opacity-20 rounded-full p-2 hover:bg-opacity-40 transition-colors duration-200 z-10">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -108,9 +119,13 @@ function Login() {
           </div>
           
           <div className="text-right text-sm">
-            <a href="#" className="font-medium text-[#14BBF0] hover:text-[#0085CE]">
+            <button 
+              type="button" 
+              onClick={handleForgotPassword} 
+              className="font-medium text-[#14BBF0] hover:text-[#0085CE] underline bg-transparent border-none cursor-pointer"
+            >
               Lupa password?
-            </a>
+            </button>
           </div>
 
           <div>
@@ -125,7 +140,7 @@ function Login() {
         </form>
         
         <p className="mt-4 text-center text-sm text-[#202262]">
-          Belum punya akun?{' '}
+          Sudah punya akun?{' '}
           <Link to="/register" className="font-medium text-[#14BBF0] hover:text-[#0085CE]">
             Daftar sekarang
           </Link>
