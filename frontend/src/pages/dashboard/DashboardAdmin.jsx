@@ -1,20 +1,16 @@
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 
-// Komponen untuk setiap kartu menu agar kode tidak berulang
 const MenuCard = ({ to, bgColor, title, description, buttonTextColor }) => (
   <Link to={to} className="flex-1 min-h-[320px] md:min-h-[400px]">
     <div
       className={`h-full text-white p-8 rounded-3xl flex flex-col justify-between shadow-xl transform hover:-translate-y-2 transition-transform duration-300`}
       style={{ backgroundColor: bgColor }}
     >
-      {/* Grup Judul dan Deskripsi */}
       <div>
         <h3 className="text-3xl font-bold">{title}</h3>
         <p className="font-light text-base mt-2 opacity-90">{description}</p>
       </div>
-
-      {/* Tombol Mulai */}
       <div
         className="bg-white font-bold px-6 py-3 rounded-full flex items-center justify-center self-end text-lg"
         style={{ color: buttonTextColor }}
@@ -40,9 +36,16 @@ function DashboardAdmin() {
         >
           Logout
         </button>
-        <h2 className="hidden sm:block text-sm font-bold tracking-widest" style={{ color: '#202262' }}>
-          HOME PAGE
-        </h2>
+        <div className="hidden sm:flex items-center gap-4">
+          <Link to="/profile" style={{ color: '#14BBF0' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </Link>
+          <h2 className="text-sm font-bold tracking-widest" style={{ color: '#202262' }}>
+            HOME PAGE
+          </h2>
+        </div>
       </header>
       
       <main className="flex flex-1 flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16">
