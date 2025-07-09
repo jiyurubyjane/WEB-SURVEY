@@ -15,7 +15,7 @@ import KelolaEvent from "./pages/dashboard/KelolaEvent.jsx";
 import InputSurveyPage from "./pages/InputSurveyPage.jsx";
 import KelolaPenggunaPage from "./pages/dashboard/KelolaPenggunaPage.jsx"; 
 import ProfilePage from "./pages/ProfilePage.jsx";
-// import HasilAnalisisPage from "./pages/dashboard/HasilAnalisisPage.jsx";
+import HasilAnalisisPage from "./pages/dashboard/HasilAnalisisPage.jsx";
 
 function App() {
   return (
@@ -43,7 +43,7 @@ function App() {
         <Route path="/kelola-event" element={<KelolaEvent />} />
         <Route path="/kelola-pengguna" element={<KelolaPenggunaPage />} />
         <Route path="/input-survei" element={<InputSurveyPage />} />
-        {/* <Route path="/hasil-analisis" element={<HasilAnalisisPage />} /> */}
+        <Route path="/hasil-analisis/:eventId" element={<HasilAnalisisPage />} />
       </Route>
 
       {/* Rute Halaman Tidak Ditemukan */}
