@@ -2,6 +2,34 @@ import React, { useState, useEffect } from "react";
 import { apiFetch, useAuth } from "../../context/AuthContext";
 import Swal from 'sweetalert2';
 
+const CurrencyInput = ({ value, onChange, ...props }) => {
+  const format = (numStr) => {
+    if (!numStr) return '';
+    return new Intl.NumberFormat('id-ID').format(Number(numStr));
+  };
+
+  const handleChange = (e) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    if (rawValue === '') {
+        onChange('');
+        return;
+    }
+    const numericValue = String(Number(rawValue));
+    onChange(numericValue);
+  };
+
+  return (
+    <input 
+      type="text" 
+      inputMode="numeric" 
+      value={value ? `Rp ${format(value)}` : ''} 
+      onChange={handleChange} 
+      {...props} 
+    />
+  );
+};
+
+
 function SurveyTaker() {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
@@ -21,6 +49,7 @@ function SurveyTaker() {
       setKuesionerList([]);
       setPertanyaanList([]);
       setSelectedKuesionerId('');
+      setJawaban({}); // <-- PERBAIKAN: Reset jawaban di sini
       return; 
     }
     apiFetch(`/api/events/${selectedEventId}/kuesioner`).then(res => res.json()).then(setKuesionerList);
@@ -45,7 +74,7 @@ function SurveyTaker() {
 
     const formattedJawaban = Object.entries(jawaban).map(([pertanyaan_id, jawaban_teks]) => ({ 
       pertanyaan_id: parseInt(pertanyaan_id, 10),
-      jawaban_teks 
+      isi_jawaban: jawaban_teks
     }));
 
     const dataToSubmit = {
@@ -61,11 +90,27 @@ function SurveyTaker() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Terjadi kesalahan saat submit");
 
-      Swal.fire('Berhasil!', data.message, 'success');
+      Swal.fire({
+        title: 'Berhasil!',
+        text: data.message,
+        icon: 'success',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors',
+        }
+      });
       setJawaban({});
 
     } catch (err) {
-      Swal.fire('Gagal!', err.message, 'error');
+      Swal.fire({
+        title: 'Gagal!',
+        text: err.message,
+        icon: 'error',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors',
+        }
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -79,9 +124,15 @@ function SurveyTaker() {
       case 'teks':
         return <input type="text" value={jawaban[pertanyaan.id] || ''} onChange={e => handleJawabanChange(pertanyaan.id, e.target.value)} className={commonClasses} required />;
       case 'angka':
-        return <input type="number" value={jawaban[pertanyaan.id] || ''} onChange={e => handleJawabanChange(pertanyaan.id, e.target.value)} className={commonClasses} required />;
+        return <input type="text" inputMode="numeric" pattern="\d*" value={jawaban[pertanyaan.id] || ''} onChange={e => handleJawabanChange(pertanyaan.id, e.target.value)} className={commonClasses} required />;
       case 'nominal':
-        return <input type="number" value={jawaban[pertanyaan.id] || ''} onChange={e => handleJawabanChange(pertanyaan.id, e.target.value)} placeholder="Contoh: 50000" className={commonClasses} required />;
+        return <CurrencyInput 
+                  value={jawaban[pertanyaan.id] || ''} 
+                  onChange={(val) => handleJawabanChange(pertanyaan.id, val)}
+                  className={commonClasses}
+                  placeholder="Ketik nominal..."
+                  required
+                />;
       case 'ya_tidak':
         return (
           <div className="relative">

@@ -368,38 +368,83 @@ app.post("/jawaban", verifyToken, async (req, res) => {
 app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) => {
     try {
         const { eventId } = req.params;
-        const query = `SELECT s.id AS submission_id, s.created_at AS tanggal_submit, u.nama AS nama_surveyor, k.tipe_responden, p.teks_pertanyaan, j.isi_jawaban FROM jawaban j JOIN survey_sessions s ON j.session_id = s.id JOIN users u ON s.surveyor_id = u.id JOIN pertanyaan p ON j.pertanyaan_id = p.id JOIN kuesioner k ON p.kuesioner_id = k.id WHERE k.event_id = $1 ORDER BY k.tipe_responden, s.id, p.urutan;`;
-        const result = await pool.query(query, [eventId]);
-        const rows = result.rows;
+
+        const answersQuery = `
+            SELECT 
+                s.id AS submission_id, 
+                s.created_at AS tanggal_submit, 
+                u.nama AS nama_surveyor, 
+                k.tipe_responden, 
+                p.teks_pertanyaan,
+                j.isi_jawaban 
+            FROM jawaban j 
+            JOIN survey_sessions s ON j.session_id = s.id 
+            JOIN users u ON s.surveyor_id = u.id 
+            JOIN pertanyaan p ON j.pertanyaan_id = p.id 
+            JOIN kuesioner k ON p.kuesioner_id = k.id 
+            WHERE k.event_id = $1;
+        `;
+        const answersResult = await pool.query(answersQuery, [eventId]);
+        const rows = answersResult.rows;
+
         if (!rows.length) return res.status(404).send('Tidak ada data survei untuk diunduh.');
+
+        const questionsQuery = `
+            SELECT k.tipe_responden, p.teks_pertanyaan, p.urutan
+            FROM pertanyaan p
+            JOIN kuesioner k ON p.kuesioner_id = k.id
+            WHERE k.event_id = $1
+            ORDER BY k.tipe_responden, p.urutan;
+        `;
+        const questionsResult = await pool.query(questionsQuery, [eventId]);
+        
+        const allQuestionsMap = questionsResult.rows.reduce((acc, q) => {
+            acc[q.tipe_responden] = acc[q.tipe_responden] || [];
+            acc[q.tipe_responden].push(q.teks_pertanyaan);
+            return acc;
+        }, {});
+
         const workbook = new ExcelJS.Workbook();
+        
         const byType = rows.reduce((acc, r) => {
             acc[r.tipe_responden] = acc[r.tipe_responden] || [];
             acc[r.tipe_responden].push(r);
             return acc;
         }, {});
+
         for (const tipe of Object.keys(byType)) {
             const data = byType[tipe];
             const safeName = tipe.replace(/[\\\/*?\[\]]/g, "_").slice(0, 31);
             const sheet = workbook.addWorksheet(safeName);
+
+            const questionHeaders = allQuestionsMap[tipe] || [];
+
             const pivot = {};
-            const questions = new Set();
             data.forEach(r => {
-                questions.add(r.teks_pertanyaan);
                 if (!pivot[r.submission_id]) {
-                    pivot[r.submission_id] = { "ID Pengisian": r.submission_id, "Tanggal Submit": r.tanggal_submit, "Nama Surveyor": r.nama_surveyor };
+                    pivot[r.submission_id] = { 
+                        "ID Pengisian": r.submission_id, 
+                        "Tanggal Submit": r.tanggal_submit, 
+                        "Nama Surveyor": r.nama_surveyor 
+                    };
+                    questionHeaders.forEach(header => {
+                        pivot[r.submission_id][header] = ''; 
+                    });
                 }
                 pivot[r.submission_id][r.teks_pertanyaan] = r.isi_jawaban;
             });
-            const headers = ["ID Pengisian", "Tanggal Submit", "Nama Surveyor", ...Array.from(questions).sort()];
+
+            const headers = ["ID Pengisian", "Tanggal Submit", "Nama Surveyor", ...questionHeaders];
             sheet.columns = headers.map(h => ({ header: h, key: h, width: 25 }));
             Object.values(pivot).forEach(row => sheet.addRow(row));
         }
+
         const fileName = `hasil_survei_event_${eventId}.xlsx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         await workbook.xlsx.write(res);
         res.end();
+
     } catch (e) {
         console.error("Download Error:", e);
         res.status(500).json({ message: "Server error", error: e.message });
