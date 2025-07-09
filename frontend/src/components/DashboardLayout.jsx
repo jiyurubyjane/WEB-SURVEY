@@ -57,7 +57,7 @@ function DashboardLayout() {
         { path: "/input-survei", label: "Input Survei" },
       ],
       Instansi: [
-         { path: "/hasil-analisis", label: "Hasil Analisis" },
+        { path: "/hasil-analisis", label: "Hasil Analisis" },
       ]
     };
     
@@ -70,7 +70,7 @@ function DashboardLayout() {
             {link.label}
           </NavLink>
         ))}
-        <NavLink to="/profil" className={getMobileNavLinkClass} onClick={closeMenu}>
+        <NavLink to="/profile" className={getMobileNavLinkClass} onClick={closeMenu}>
           Profil Saya
         </NavLink>
       </>
@@ -97,7 +97,7 @@ function DashboardLayout() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </NavLink>
-              <NavLink to="/profil" title="Profil Saya">
+              <NavLink to="/profile" title="Profil Saya">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-base font-bold shadow-sm">
                   {user?.nama.charAt(0).toUpperCase()}
                 </div>

@@ -41,8 +41,13 @@ function Login() {
       icon: 'info',
       confirmButtonText: 'Mengerti',
       confirmButtonColor: '#3085d6',
+      buttonsStyling: false,
+      customClass: {
+        actions: 'gap-4',
+        confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors',
+      }
     });
-  };
+  }
 
   if (user) {
     return (
