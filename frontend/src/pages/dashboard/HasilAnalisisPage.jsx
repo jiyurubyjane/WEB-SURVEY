@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiFetch } from '../../context/AuthContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -10,13 +10,18 @@ const StatusDisplay = ({ message }) => (
   <div className="text-center py-20 text-gray-500">{message}</div>
 );
 
-const SummaryCard = ({ title, value, icon, formatAsCurrency = false }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-    <div className="absolute -right-5 -bottom-5 text-slate-100 opacity-80">
-      {icon}
-    </div>
-    <p className="text-sm font-medium text-gray-500 relative z-10">{title}</p>
-    <p className="mt-1 text-4xl font-bold text-[#202262] relative z-10">
+const SummaryCard = ({ title, value, icon, formatAsCurrency = false, bgColor }) => (
+  <div 
+    className="p-6 rounded-2xl shadow-lg relative overflow-hidden"
+    style={{ backgroundColor: bgColor || 'white' }}
+  >
+    {icon && (
+      <div className={`absolute -right-5 -bottom-5 ${bgColor ? 'text-white/20' : 'text-slate-100'}`}>
+        {icon}
+      </div>
+    )}
+    <p className={`text-sm font-medium relative z-10 ${bgColor ? 'text-white/80' : 'text-gray-500'}`}>{title}</p>
+    <p className={`mt-1 text-4xl font-bold relative z-10 ${bgColor ? 'text-white' : 'text-[#202262]'}`}>
       {formatAsCurrency ? `Rp ${new Intl.NumberFormat('id-ID').format(value)}` : value}
     </p>
   </div>
@@ -24,23 +29,39 @@ const SummaryCard = ({ title, value, icon, formatAsCurrency = false }) => (
 
 const AnalysisRenderer = ({ questionData }) => {
   const { tipe_jawaban, jawaban } = questionData;
-  const pieColors = ['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0.7)'];
+  const [isReady, setIsReady] = useState(false);
+  const chartColors = ['#14BBF0', '#FFAD01', '#A80151', '#EF4444', '#0085CE', '#202262'];
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsReady(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isReady) {
+    return <div className="w-full h-64 flex items-center justify-center text-sm text-gray-400">Memuat grafik...</div>;
+  }
+  
+  const labels = Object.keys(jawaban);
+  const dataValues = Object.values(jawaban);
 
   if (tipe_jawaban === 'ya_tidak') {
     const data = {
-      labels: Object.keys(jawaban),
+      labels: labels,
       datasets: [{
-        data: Object.values(jawaban),
-        backgroundColor: pieColors,
-        borderColor: 'rgba(255, 255, 255, 0.5)',
-        borderWidth: 1,
+        label: 'Jumlah Responden',
+        data: dataValues,
+        backgroundColor: chartColors,
+        borderColor: '#fff',
+        borderWidth: 2,
       }],
     };
     const options = {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: 'top',
-                labels: { color: 'white', font: { size: 12 } }
+                labels: { color: '#374151', font: { size: 12 } }
             }
         }
     };
@@ -57,8 +78,8 @@ const AnalysisRenderer = ({ questionData }) => {
       datasets: [{
         label: 'Jumlah Responden',
         data: topValues,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderColor: 'rgba(255, 255, 255, 1)',
+        backgroundColor: '#14BBF0',
+        borderColor: '#0085CE',
         borderWidth: 1,
       }],
     };
@@ -67,16 +88,12 @@ const AnalysisRenderer = ({ questionData }) => {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: 'white', beginAtZero: true } },
-        y: { ticks: { color: 'white', fontSize: 10 } }
-      }
     };
     return (
         <div className="relative h-64 w-full">
             <Bar options={options} data={data} />
             {Object.keys(jawaban).length > 10 && (
-                <p className="text-xs text-center text-white/70 mt-2">
+                <p className="text-xs text-center text-gray-400 mt-2">
                     Menampilkan 10 jawaban teratas.
                 </p>
             )}
@@ -84,7 +101,7 @@ const AnalysisRenderer = ({ questionData }) => {
     );
   }
 
-  return <p className="text-sm text-white/70">Visualisasi untuk tipe data ini belum tersedia.</p>;
+  return <p className="text-sm text-gray-500">Visualisasi untuk tipe data ini belum tersedia.</p>;
 };
 
 const getQuestionIcon = (tipe_jawaban) => {
@@ -102,7 +119,7 @@ function HasilAnalisisPage() {
   const [event, setEvent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const chartCardColors = ['#14BBF0', '#FFAD01', '#A80151', '#EF4444', '#0085CE', '#202262'];
+  const summaryCardColors = ['#FFAD01', '#A80151', '#EF4444', '#0085CE', '#202262'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -166,7 +183,7 @@ function HasilAnalisisPage() {
     <>
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-[#202262]">{event?.nama_event}</h1>
-        <p className="mt-1 text-gray-500">Hasil Analisis Survei</p>
+        <p className="mt-1 text-gray-500">Laporan Analitik Survei</p>
       </div>
 
       {Object.entries(analysis).map(([tipeResponden, data]) => {
@@ -179,26 +196,26 @@ function HasilAnalisisPage() {
             
             {summaryCards.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {summaryCards.map(card => (
-                  <SummaryCard key={card.title} {...card} />
+                {summaryCards.map((card, index) => (
+                  <SummaryCard 
+                    key={card.title} 
+                    {...card} 
+                    bgColor={summaryCardColors[index % summaryCardColors.length]}
+                  />
                 ))}
               </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {Object.entries(data.pertanyaan).map(([pertanyaan, detail], index) => {
+              {Object.entries(data.pertanyaan).map(([pertanyaan, detail]) => {
                 if (detail.tipe_jawaban === 'nominal') return null;
                 return (
-                  <div 
-                    key={pertanyaan} 
-                    style={{ backgroundColor: chartCardColors[index % chartCardColors.length] }}
-                    className="p-6 rounded-2xl shadow-lg min-h-[350px] flex flex-col"
-                  >
+                  <div key={pertanyaan} className="bg-white p-6 rounded-2xl shadow-lg min-h-[350px] flex flex-col">
                     <div className="flex items-center gap-3 mb-4 flex-shrink-0">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
                             {getQuestionIcon(detail.tipe_jawaban)}
                         </div>
-                        <h4 className="font-bold text-lg text-white">{pertanyaan}</h4>
+                        <h4 className="font-bold text-lg text-[#202262]">{pertanyaan}</h4>
                     </div>
                     <div className="flex-grow flex items-center justify-center mt-4">
                       <AnalysisRenderer questionData={detail} />

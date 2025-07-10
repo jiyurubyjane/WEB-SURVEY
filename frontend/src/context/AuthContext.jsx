@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
     navigate('/login');
   };
 
-  const value = { user, loading, login, logout };
+  const value = { user, setUser, loading, login, logout };
 
   if (loading) {
     return <p className="text-center mt-20 text-lg">Memuat Aplikasi...</p>;

@@ -16,22 +16,20 @@ import InputSurveyPage from "./pages/InputSurveyPage.jsx";
 import KelolaPenggunaPage from "./pages/dashboard/KelolaPenggunaPage.jsx"; 
 import ProfilePage from "./pages/ProfilePage.jsx";
 import HasilAnalisisPage from "./pages/dashboard/HasilAnalisisPage.jsx";
+import EventDetailPage from "./pages/dashboard/EventDetailPage.jsx";
 
 function App() {
   return (
     <Routes>
-      {/* Rute Publik */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Rute Dashboard (tanpa layout header) */}
       <Route path="/dashboard-admin" element={<PrivateRoute allowedRoles={["Admin"]}><DashboardAdmin /></PrivateRoute>} />
       <Route path="/dashboard-surveyor" element={<PrivateRoute allowedRoles={["Surveyor"]}><DashboardSurveyor /></PrivateRoute>} />
       <Route path="/dashboard-instansi" element={<PrivateRoute allowedRoles={["Instansi"]}><DashboardInstansi /></PrivateRoute>} />
       
-      {/* Grup Rute dengan Layout Header */}
       <Route 
         element={
           <PrivateRoute allowedRoles={["Admin", "Surveyor", "Instansi"]}>
@@ -41,12 +39,12 @@ function App() {
       >
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/kelola-event" element={<KelolaEvent />} />
+        <Route path="/kelola-event/:eventId" element={<EventDetailPage />} />
         <Route path="/kelola-pengguna" element={<KelolaPenggunaPage />} />
         <Route path="/input-survei" element={<InputSurveyPage />} />
         <Route path="/hasil-analisis/:eventId" element={<HasilAnalisisPage />} />
       </Route>
 
-      {/* Rute Halaman Tidak Ditemukan */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

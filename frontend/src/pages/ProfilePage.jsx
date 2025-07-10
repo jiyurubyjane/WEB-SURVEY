@@ -82,9 +82,25 @@ function ProfilePage() {
       setUser(userWithSamePeran);
       
       setIsEditing(false);
-      Swal.fire('Berhasil!', 'Profil Anda telah diperbarui.', 'success');
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Profile Anda telah diubah!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: {
+          confirmButton: 'px-6 py-2.5 rounded-lg font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] transition-colors'
+        }
+      });
     } catch (err) {
-      Swal.fire('Oops...', err.message, 'error');
+      Swal.fire({
+        title: 'Oops...',
+        text: err.message,
+        icon: 'error',
+        confirmButtonText: 'OK',
+        customClass: {
+          confirmButton: 'px-6 py-2.5 rounded-lg font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] transition-colors'
+        }
+      });
     }
   };
 
@@ -101,7 +117,15 @@ function ProfilePage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.message);
       setPasswordData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
-      Swal.fire('Berhasil!', 'Password Anda telah diubah.', 'success');
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Password Anda telah diubah!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: {
+          confirmButton: 'px-6 py-2.5 rounded-lg font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] transition-colors'
+        }
+      });
     } catch (err) {
       Swal.fire('Oops...', err.message || 'Gagal mengubah password.', 'error');
     }

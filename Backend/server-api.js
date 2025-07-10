@@ -208,19 +208,35 @@ app.get("/events", verifyToken, async (req, res) => {
 });
 
 app.post("/events", verifyToken, isAdmin, async (req, res) => {
-    const { nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, sponsors = [] } = req.body;
+    let { 
+        nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, 
+        jumlah_peserta, skala_event, kategori_olahraga_id, 
+        sponsors = [], nama_kategori_baru 
+    } = req.body;
+    
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        if (nama_kategori_baru && !kategori_olahraga_id) {
+            const newKategoriResult = await client.query(
+                'INSERT INTO kategori_olahraga (nama_cabor) VALUES ($1) ON CONFLICT (nama_cabor) DO UPDATE SET nama_cabor = EXCLUDED.nama_cabor RETURNING id',
+                [nama_kategori_baru]
+            );
+            kategori_olahraga_id = newKategoriResult.rows[0].id;
+        }
+
         const sqlEvent = 'INSERT INTO events (nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id';
         const eventResult = await client.query(sqlEvent, [nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, 'aktif']);
         const eventId = eventResult.rows[0].id;
+
         if (sponsors.length > 0) {
             const sqlSponsor = 'INSERT INTO sponsors (event_id, nama_sponsor) VALUES ($1, $2)';
             for (const nama of sponsors) {
                 await client.query(sqlSponsor, [eventId, nama]);
             }
         }
+        
         await client.query('COMMIT');
         res.status(201).json({ eventId });
     } catch (err) {
@@ -233,46 +249,52 @@ app.post("/events", verifyToken, isAdmin, async (req, res) => {
 });
 
 app.get("/events/:id", verifyToken, async (req, res) => {
-    
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "ID tidak valid." });
+
     try {
-        const { id } = req.params;
-        const eventId = parseInt(id, 10);
-
-        if (isNaN(eventId)) {
-            return res.status(400).json({ error: "ID Event tidak valid." });
-        }
-
         const sqlEvent = `SELECT e.*, ko.nama_cabor FROM events e LEFT JOIN kategori_olahraga ko ON e.kategori_olahraga_id = ko.id WHERE e.id = $1`;
-        const eventResult = await pool.query(sqlEvent, [eventId]);
+        const eventResult = await pool.query(sqlEvent, [id]);
         const event = eventResult.rows[0];
 
-        if (!event) {
-            return res.status(404).json({ error: "Event tidak ditemukan." });
-        }
+        if (!event) return res.status(404).json({ error: "Event tidak ditemukan." });
 
         const sqlSponsors = `SELECT nama_sponsor FROM sponsors WHERE event_id = $1`;
-        const sponsorsResult = await pool.query(sqlSponsors, [eventId]);
+        const sponsorsResult = await pool.query(sqlSponsors, [id]);
         event.sponsors = sponsorsResult.rows.map(s => s.nama_sponsor);
 
         res.json(event);
-
     } catch (err) {
         console.error("Get Event Detail Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-
 app.put("/events/:id", verifyToken, isAdmin, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ message: "ID Event tidak valid." });
 
-    const { nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, sponsors = [] } = req.body;
+    let { 
+        nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, 
+        jumlah_peserta, skala_event, kategori_olahraga_id, 
+        sponsors = [], nama_kategori_baru 
+    } = req.body;
+    
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        if (nama_kategori_baru && !kategori_olahraga_id) {
+            const newKategoriResult = await client.query(
+                'INSERT INTO kategori_olahraga (nama_cabor) VALUES ($1) ON CONFLICT (nama_cabor) DO UPDATE SET nama_cabor = EXCLUDED.nama_cabor RETURNING id',
+                [nama_kategori_baru]
+            );
+            kategori_olahraga_id = newKategoriResult.rows[0].id;
+        }
+
         const sqlEvent = `UPDATE events SET nama_event = $1, lokasi = $2, tanggal_mulai = $3, tanggal_selesai = $4, deskripsi = $5, jumlah_peserta = $6, skala_event = $7, kategori_olahraga_id = $8 WHERE id = $9`;
         await client.query(sqlEvent, [nama_event, lokasi, tanggal_mulai, tanggal_selesai, deskripsi, jumlah_peserta, skala_event, kategori_olahraga_id, id]);
+        
         await client.query('DELETE FROM sponsors WHERE event_id = $1', [id]);
         if (sponsors.length > 0) {
             const sqlSponsor = 'INSERT INTO sponsors (event_id, nama_sponsor) VALUES ($1, $2)';
@@ -280,6 +302,7 @@ app.put("/events/:id", verifyToken, isAdmin, async (req, res) => {
                 await client.query(sqlSponsor, [id, nama]);
             }
         }
+        
         await client.query('COMMIT');
         res.json({ message: "Event berhasil diperbarui" });
     } catch (err) {
@@ -288,6 +311,30 @@ app.put("/events/:id", verifyToken, isAdmin, async (req, res) => {
         res.status(500).json({ error: err.message });
     } finally {
         client.release();
+    }
+});
+
+app.patch("/events/:id/status", verifyToken, isAdmin, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "ID Event tidak valid." });
+
+    const { status } = req.body;
+    if (!status || !['aktif', 'diarsipkan'].includes(status)) {
+        return res.status(400).json({ message: "Status tidak valid." });
+    }
+
+    try {
+        const result = await pool.query(
+            "UPDATE events SET status = $1 WHERE id = $2 RETURNING id",
+            [status, id]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Event tidak ditemukan." });
+        }
+        res.json({ message: `Status event berhasil diubah menjadi ${status}.` });
+    } catch (err) {
+        console.error("Update Event Status Error:", err);
+        res.status(500).json({ error: "Gagal memperbarui status event." });
     }
 });
 
@@ -448,7 +495,7 @@ app.get("/events/:eventId/analisis", verifyToken, async (req, res) => {
             }
 
             const currentQuestion = analysis[tipe_responden].pertanyaan[teks_pertanyaan];
-
+            
             if (currentQuestion.jawaban[isi_jawaban]) {
                 currentQuestion.jawaban[isi_jawaban]++;
             } else {
@@ -460,7 +507,7 @@ app.get("/events/:eventId/analisis", verifyToken, async (req, res) => {
                 currentQuestion.sum += numericValue;
             }
         });
-
+        
         const sessionCounts = await pool.query(`
             SELECT k.tipe_responden, COUNT(DISTINCT s.id) as count
             FROM survey_sessions s
@@ -516,7 +563,7 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) 
             ORDER BY k.tipe_responden, p.urutan;
         `;
         const questionsResult = await pool.query(questionsQuery, [eventId]);
-
+        
         const allQuestionsMap = questionsResult.rows.reduce((acc, q) => {
             acc[q.tipe_responden] = acc[q.tipe_responden] || [];
             acc[q.tipe_responden].push(q.teks_pertanyaan);
@@ -524,7 +571,7 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) 
         }, {});
 
         const workbook = new ExcelJS.Workbook();
-
+        
         const byType = rows.reduce((acc, r) => {
             acc[r.tipe_responden] = acc[r.tipe_responden] || [];
             acc[r.tipe_responden].push(r);
@@ -541,13 +588,13 @@ app.get("/events/:eventId/hasil-survei/download", verifyToken, async (req, res) 
             const pivot = {};
             data.forEach(r => {
                 if (!pivot[r.submission_id]) {
-                    pivot[r.submission_id] = {
-                        "ID Pengisian": r.submission_id,
-                        "Tanggal Submit": r.tanggal_submit,
-                        "Nama Surveyor": r.nama_surveyor
+                    pivot[r.submission_id] = { 
+                        "ID Pengisian": r.submission_id, 
+                        "Tanggal Submit": r.tanggal_submit, 
+                        "Nama Surveyor": r.nama_surveyor 
                     };
                     questionHeaders.forEach(header => {
-                        pivot[r.submission_id][header] = '';
+                        pivot[r.submission_id][header] = ''; 
                     });
                 }
                 pivot[r.submission_id][r.teks_pertanyaan] = r.isi_jawaban;

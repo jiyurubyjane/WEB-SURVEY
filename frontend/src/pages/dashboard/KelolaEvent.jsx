@@ -85,13 +85,21 @@ function KelolaEvent() {
       customClass: {
         actions: 'gap-4',
         confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors',
-        cancelButton: 'font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 px-5 py-2.5 rounded-lg transition-colors'
+        cancelButton: 'font-semibold text-gray-600 bg-white hover:bg-gray-200 border border-gray-300 px-5 py-2.5 rounded-lg transition-colors'
       }
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
           await apiFetch(`/api/events/${eventId}`, { method: 'DELETE' });
-          Swal.fire('Terhapus!', 'Event berhasil dihapus.', 'success');
+          Swal.fire({
+            title: 'Terhapus!',
+            text: 'Event berhasil dihapus',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            customClass: {
+              confirmButton: 'px-6 py-2.5 rounded-lg font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] transition-colors'
+            }
+          });
           fetchEvents();
         } catch (err) {
           Swal.fire('Error', err.message, 'error');
@@ -224,7 +232,7 @@ function KelolaEvent() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2 sm:gap-4">
-                            <button onClick={() => handleOpenEditModal(event)} title="Edit" className="text-gray-500 hover:text-indigo-600 transition-colors">
+                            <button onClick={() => handleOpenEditModal(event)} title="Edit" className="text-gray-500 hover:text-[#14BBF0] transition-colors">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
                                 <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />

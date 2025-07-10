@@ -59,8 +59,10 @@ function DashboardInstansi() {
 
       const contentDisposition = res.headers.get('content-disposition');
       let filename = `hasil_survei_${eventName.replace(/ /g, "_")}.xlsx`;
+      
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        // --- PERBAIKAN LOGIKA PARSING FILENAME ---
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
         if (filenameMatch && filenameMatch.length > 1) {
           filename = decodeURIComponent(filenameMatch[1]);
         }
@@ -106,7 +108,7 @@ function DashboardInstansi() {
                   <div className="flex-1 flex justify-start">
                       <button
                           onClick={logout}
-                          className="bg-white/20 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#14BBF0] transition-colors"
+                          className="bg-white/20 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-red-600 transition-colors"
                       >
                           Logout
                       </button>
@@ -170,12 +172,12 @@ function DashboardInstansi() {
                     </p>
                   </div>
                   <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link to={`/hasil-analisis/${event.id}`} className="w-full text-center bg-white/30 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-[#14BBF0] transition-colors">
-                      Lihat Analisis
+                    <Link to={`/hasil-analisis/${event.id}`} className="w-full text-center bg-white/20 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-[#14BBF0] text-white transition-colors">
+                      Lihat Analitik
                     </Link>
                     <button 
                         onClick={() => handleDownload(event.id, event.nama_event)}
-                        className="w-full bg-white/20 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-white/30 transition-colors"
+                        className="w-full bg-white/20 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-green-500 transition-colors"
                     >
                         Download
                     </button>

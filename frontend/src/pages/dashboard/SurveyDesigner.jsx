@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 
@@ -78,9 +78,25 @@ function SurveyDesigner() {
           body: JSON.stringify({ event_id: selectedEventId, tipe_responden: tipeResponden, nama_kuesioner: `Kuesioner untuk ${tipeResponden}` })
         });
         fetchKuesioner();
-        Swal.fire('Berhasil!', `Tipe responden "${tipeResponden}" telah ditambahkan.`, 'success');
+        Swal.fire({
+            title: 'Berhasil!', 
+            text: `Tipe responden "${tipeResponden}" telah ditambahkan.`, 
+            icon: 'success',
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors'
+            }
+        });
       } catch (error) {
-        Swal.fire('Gagal!', 'Terjadi kesalahan saat menambah kuesioner.', 'error');
+        Swal.fire({
+            title: 'Gagal!', 
+            text: 'Terjadi kesalahan saat menambah kuesioner.', 
+            icon: 'error',
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors'
+            }
+        });
       }
     }
   };
@@ -105,9 +121,25 @@ function SurveyDesigner() {
                 await apiFetch(`/api/kuesioner/${id}`, { method: 'DELETE' });
                 fetchKuesioner();
                 if (selectedKuesioner?.id === id) setSelectedKuesioner(null);
-                Swal.fire('Terhapus!', `Tipe responden "${namaTipe}" berhasil dihapus.`, 'success');
+                Swal.fire({
+                    title: 'Terhapus!', 
+                    text: `Tipe responden "${namaTipe}" berhasil dihapus.`, 
+                    icon: 'success',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors'
+                    }
+                });
             } catch (error) {
-                Swal.fire('Gagal!', 'Gagal menghapus tipe responden.', 'error');
+                Swal.fire({
+                    title: 'Gagal!', 
+                    text: 'Gagal menghapus tipe responden.', 
+                    icon: 'error',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors'
+                    }
+                });
             }
         }
     });
@@ -115,7 +147,15 @@ function SurveyDesigner() {
 
   const handleAddPertanyaan = async () => {
     if (!selectedKuesioner) {
-      Swal.fire('Peringatan', 'Pilih tipe responden terlebih dahulu.', 'warning');
+      Swal.fire({
+        title: 'Peringatan', 
+        text: 'Pilih tipe responden terlebih dahulu.', 
+        icon: 'warning',
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: 'font-semibold text-white bg-yellow-500 hover:bg-yellow-600 px-5 py-2.5 rounded-lg transition-colors'
+        }
+      });
       return;
     }
     
@@ -162,9 +202,25 @@ function SurveyDesigner() {
           })
         });
         fetchPertanyaan();
-        Swal.fire('Berhasil!', 'Pertanyaan baru telah ditambahkan.', 'success');
+        Swal.fire({
+            title: 'Berhasil!', 
+            text: 'Pertanyaan baru telah ditambahkan.', 
+            icon: 'success',
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors'
+            }
+        });
       } catch (error) {
-        Swal.fire('Gagal!', 'Gagal menambah pertanyaan.', 'error');
+        Swal.fire({
+            title: 'Gagal!', 
+            text: 'Gagal menambah pertanyaan.', 
+            icon: 'error',
+            buttonsStyling: false,
+            customClass: {
+                confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors'
+            }
+        });
       }
     }
   };
@@ -188,9 +244,25 @@ function SurveyDesigner() {
             try {
                 await apiFetch(`/api/pertanyaan/${id}`, { method: 'DELETE' });
                 fetchPertanyaan();
-                Swal.fire('Terhapus!', 'Pertanyaan berhasil dihapus.', 'success');
+                Swal.fire({
+                    title: 'Terhapus!', 
+                    text: 'Pertanyaan berhasil dihapus.', 
+                    icon: 'success',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'font-semibold text-white bg-[#14BBF0] hover:bg-[#0085CE] px-5 py-2.5 rounded-lg transition-colors'
+                    }
+                });
             } catch (error) {
-                Swal.fire('Gagal!', 'Gagal menghapus pertanyaan.', 'error');
+                Swal.fire({
+                    title: 'Gagal!', 
+                    text: 'Gagal menghapus pertanyaan.', 
+                    icon: 'error',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'font-semibold text-white bg-red-600 hover:bg-red-700 px-5 py-2.5 rounded-lg transition-colors'
+                    }
+                });
             }
         }
     });
@@ -210,14 +282,14 @@ function SurveyDesigner() {
             id="event-selector" 
             value={selectedEventId} 
             onChange={e => setSelectedEventId(e.target.value)} 
-            className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#14BBF0] focus:border-[#14BBF0] appearance-none"
+            className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#14BBF0] focus:border-[#14BBF0] appearance-none"
           >
             <option value="">-- Pilih Event --</option>
             {events.map(event => (
               <option key={event.id} value={event.id}>{event.nama_event}</option>
             ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>

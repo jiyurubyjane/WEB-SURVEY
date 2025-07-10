@@ -55,7 +55,7 @@ function DashboardSurveyor() {
             </p>
             <div className="mt-10">
               <Link to="/input-survei">
-                <button className="bg-white text-[#202262] font-bold text-lg px-10 py-4 rounded-full hover:bg-[#14BBF0] transition-transform transform hover:scale-105 shadow-xl">
+                <button className="bg-white text-[#202262] font-bold text-lg px-10 py-4 rounded-full hover:bg-[#14BBF0] hover:text-white transition-transform transform hover:scale-105 shadow-xl">
                   Mulai Input Data Survei
                 </button>
               </Link>

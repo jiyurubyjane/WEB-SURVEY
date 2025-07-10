@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../context/AuthContext';
+import Swal from 'sweetalert2';
 
 function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
   const isEditMode = Boolean(eventData?.id);
@@ -11,30 +12,52 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
 
   const [formData, setFormData] = useState(initialFormData);
   const [kategoriQuery, setKategoriQuery] = useState('');
+  const [kategoriDisplay, setKategoriDisplay] = useState('');
   const [kategoriOptions, setKategoriOptions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [currentSponsor, setCurrentSponsor] = useState('');
 
   useEffect(() => {
-    if (isOpen && eventData) {
-      setFormData({
-        nama_event: eventData.nama_event || '',
-        lokasi: eventData.lokasi || '',
-        tanggal_mulai: eventData.tanggal_mulai?.split('T')[0] || '',
-        tanggal_selesai: eventData.tanggal_selesai?.split('T')[0] || '',
-        deskripsi: eventData.deskripsi || '',
-        jumlah_peserta: eventData.jumlah_peserta || '',
-        skala_event: eventData.skala_event || 'Lokal',
-        kategori_olahraga_id: eventData.kategori_olahraga_id || null,
-        sponsors: eventData.sponsors || [],
-      });
-      setKategoriQuery(eventData.nama_cabor || '');
-    } else {
+    if (!isOpen) {
       setFormData(initialFormData);
       setKategoriQuery('');
+      setKategoriDisplay('');
+      setError('');
+      return;
     }
-  }, [eventData, isOpen]);
+
+    if (!isEditMode) {
+      setFormData(initialFormData);
+      setKategoriQuery('');
+      setKategoriDisplay('');
+    } else if (isEditMode && eventData?.id) {
+      const fetchFullEvent = async () => {
+        try {
+          const res = await apiFetch(`/api/events/${eventData.id}`);
+          if (!res.ok) throw new Error('Gagal memuat detail event untuk diedit.');
+          const fullEventData = await res.json();
+          
+          setFormData({
+            nama_event: fullEventData.nama_event || '',
+            lokasi: fullEventData.lokasi || '',
+            tanggal_mulai: fullEventData.tanggal_mulai?.split('T')[0] || '',
+            tanggal_selesai: fullEventData.tanggal_selesai?.split('T')[0] || '',
+            deskripsi: fullEventData.deskripsi || '',
+            jumlah_peserta: fullEventData.jumlah_peserta || '',
+            skala_event: fullEventData.skala_event || 'Lokal',
+            kategori_olahraga_id: fullEventData.kategori_olahraga_id || null,
+            sponsors: fullEventData.sponsors || [],
+          });
+          setKategoriDisplay(fullEventData.nama_cabor || '');
+          setKategoriQuery('');
+        } catch (err) {
+          setError(err.message);
+        }
+      };
+      fetchFullEvent();
+    }
+  }, [eventData, isOpen, isEditMode]);
 
   useEffect(() => {
     if (kategoriQuery.length < 2) {
@@ -73,17 +96,32 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
+    
+    const payload = { ...formData };
+    if (!payload.kategori_olahraga_id && kategoriDisplay) {
+        payload.nama_kategori_baru = kategoriDisplay;
+    }
+    
     const url = isEditMode ? `/api/events/${eventData.id}` : '/api/events';
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {
-      const res = await apiFetch(url, { method, body: JSON.stringify(formData) });
+      const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan event');
+      
+      Swal.fire({
+        title: 'Berhasil!',
+        text: `Event telah berhasil ${isEditMode ? 'diperbarui' : 'disimpan'}.`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.message);
+      Swal.fire('Gagal!', err.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -144,12 +182,26 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Olahraga</label>
-              <input type="text" value={kategoriQuery} onChange={(e) => setKategoriQuery(e.target.value)} placeholder="Ketik untuk cari..." className={inputClasses} />
+              <input 
+                type="text" 
+                value={kategoriDisplay} 
+                onChange={(e) => {
+                  setKategoriDisplay(e.target.value);
+                  setKategoriQuery(e.target.value);
+                  setFormData(prev => ({...prev, kategori_olahraga_id: null}));
+                }} 
+                placeholder="Ketik untuk cari atau tambah baru..." 
+                className={inputClasses} 
+              />
               {kategoriOptions.length > 0 && (
                 <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
                   {kategoriOptions.map(opt => (
-                    <li key={opt.id} onClick={() => { setFormData(prev => ({...prev, kategori_olahraga_id: opt.id})); setKategoriQuery(opt.nama_cabor); setKategoriOptions([]); }} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">{opt.nama_cabor}</li>
-                  ))}
+                    <li key={opt.id} onClick={() => { 
+                      setFormData(prev => ({...prev, kategori_olahraga_id: opt.id})); 
+                      setKategoriDisplay(opt.nama_cabor); 
+                      setKategoriOptions([]); 
+                      setKategoriQuery('');
+                    }} className="px-4 py-2 cursor-pointer transition-colors hover:bg-[#14BBF0] hover:text-white">{opt.nama_cabor}</li>                  ))}
                 </ul>
               )}
             </div>
@@ -173,7 +225,7 @@ function EventFormModal({ isOpen, onClose, onSuccess, eventData }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor</label>
             <div className="flex gap-2">
-              <input type="text" value={currentSponsor} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSponsor(); } }} onChange={(e) => setCurrentSponsor(e.target.value)} placeholder="Ketik nama sponsor lalu tekan Enter atau Tambah" className={inputClasses} />
+              <input type="text" value={currentSponsor} onChange={(e) => setCurrentSponsor(e.target.value)} placeholder="Ketik nama sponsor lalu klik Tambah" className={inputClasses} />
               <button type="button" onClick={handleAddSponsor} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-semibold whitespace-nowrap">Tambah</button>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
