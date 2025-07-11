@@ -8,8 +8,7 @@ const ExcelJS = require('exceljs');
 
 const app = express();
 const port = 3001;
-const JWT_SECRET = "kunci-rahasia-jwt-yang-super-aman-dan-panjang";
-
+const JWT_SECRET = process.env.JWT_SECRET;
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
